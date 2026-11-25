@@ -2484,8 +2484,10 @@ function setWBFilter(f, btn) {
 // ===== SPEECH =====
 let cachedVoice = null;
 let voicesReady = false;
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 function loadVoice() {
+  if (typeof speechSynthesis === 'undefined') return;
   const voices = speechSynthesis.getVoices();
   if (!voices.length) return;
   const preferred = ['es-ES','es-MX','es-US'];
@@ -2497,32 +2499,49 @@ function loadVoice() {
   if (!cachedVoice) cachedVoice = voices.find(v => v.lang.startsWith('es') && !avoid.some(a => v.lang === a));
   if (!cachedVoice) cachedVoice = voices.find(v => v.lang.startsWith('es'));
   voicesReady = true;
-  // Warm up TTS with a silent utterance
-  const warm = new SpeechSynthesisUtterance('');
-  warm.volume = 0;
-  if (cachedVoice) warm.voice = cachedVoice;
-  speechSynthesis.speak(warm);
+}
+
+function createUtterance(text, onEnd) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'es-ES';
+  utter.rate = state.speechRate;
+  utter.volume = 1;
+  if (cachedVoice) utter.voice = cachedVoice;
+  utter.onend = () => { if (onEnd) onEnd(); };
+  utter.onerror = () => { if (onEnd) onEnd(); };
+  return utter;
 }
 
 function speak(text, onEnd) {
-  speechSynthesis.cancel();
-  // Small delay after cancel to prevent Chrome TTS stalling
-  setTimeout(() => {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'es-ES';
-    utter.rate = state.speechRate;
-    if (cachedVoice) utter.voice = cachedVoice;
-    if (onEnd) utter.onend = onEnd;
-    utter.onerror = () => { if (onEnd) onEnd(); };
+  if (typeof speechSynthesis === 'undefined') {
+    showToast('当前浏览器不支持语音，请用 Safari 或 Chrome 打开');
+    if (onEnd) onEnd();
+    return;
+  }
+  if (!cachedVoice) loadVoice();
+
+  if (isMobile) {
+    // Mobile browsers require synchronous speak() inside user gesture (no setTimeout, no pause/resume)
+    if (speechSynthesis.speaking || speechSynthesis.pending) {
+      speechSynthesis.cancel();
+    }
+    const utter = createUtterance(text, onEnd);
     speechSynthesis.speak(utter);
-    // Chrome bug workaround: periodically resume to prevent engine from freezing
-    const keepAlive = setInterval(() => {
+    return;
+  }
+
+  // Desktop Chrome workaround: small delay after cancel + keepAlive
+  speechSynthesis.cancel();
+  setTimeout(() => {
+    const utter = createUtterance(text, null);
+    let keepAlive = setInterval(() => {
       if (!speechSynthesis.speaking) { clearInterval(keepAlive); return; }
       speechSynthesis.pause();
       speechSynthesis.resume();
     }, 5000);
     utter.onend = () => { clearInterval(keepAlive); if (onEnd) onEnd(); };
     utter.onerror = () => { clearInterval(keepAlive); if (onEnd) onEnd(); };
+    speechSynthesis.speak(utter);
   }, 50);
 }
 
@@ -2530,10 +2549,19 @@ function speakWord() {
   if (currentWord) speak(currentWord.es);
 }
 
-// Load and cache voices early
+// Load voices and unlock mobile audio on first interaction
 if (typeof speechSynthesis !== 'undefined') {
   speechSynthesis.onvoiceschanged = loadVoice;
   loadVoice();
+  if (isMobile) {
+    const unlockTTS = () => {
+      loadVoice();
+      document.removeEventListener('touchstart', unlockTTS);
+      document.removeEventListener('click', unlockTTS);
+    };
+    document.addEventListener('touchstart', unlockTTS, { once: true, passive: true });
+    document.addEventListener('click', unlockTTS, { once: true });
+  }
 }
 
 // ===== SETTINGS =====
