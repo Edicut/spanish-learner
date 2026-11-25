@@ -548,6 +548,34 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
           </div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-header"><h3>☁️ GitHub 云同步（电脑 & 手机互通）</h3><span id="syncStatusText" style="font-size:12px;color:var(--text2)">未配置</span></div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+          使用你的 GitHub 私密 Gist 免费保存进度（密钥仅保存在当前浏览器本地，不会上传到任何第三方）。<br>
+          生成 Token：<a href="https://github.com/settings/tokens/new?scopes=gist&description=HolaSpanishSync" target="_blank" style="color:var(--primary);font-weight:600">点击这里快速生成（只勾选 gist 权限）</a>
+        </p>
+        <div style="display:grid;gap:10px;margin-bottom:14px">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text2)">GitHub Token (仅需 gist 权限)</label>
+            <input type="password" id="syncToken" class="search-box" style="width:100%;margin-top:4px" placeholder="ghp_xxxxxxxxxxxx" oninput="saveSyncConfig()">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text2)">Gist ID（首次上传可留空，会自动创建私密 Gist）</label>
+            <input type="text" id="syncGistId" class="search-box" style="width:100%;margin-top:4px" placeholder="自动生成或从另一台设备复制粘贴" oninput="saveSyncConfig()">
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+            <input type="checkbox" id="syncAuto" onchange="saveSyncConfig()">
+            <span>学习后自动上传进度到云端</span>
+          </label>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="syncUpload(true)">☁️ 上传进度到云端</button>
+          <button class="btn btn-success btn-sm" onclick="syncDownload()">📥 从云端拉取进度</button>
+          <button class="btn btn-outline btn-sm" onclick="copySyncConfig()">📋 复制配置给手机</button>
+          <button class="btn btn-outline btn-sm" onclick="pasteSyncConfig()">📲 粘贴配置</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -1457,6 +1485,7 @@ let isRecording = false;
 // ===== INIT =====
 function init() {
   loadState();
+  loadSyncConfig();
   checkNewDay();
   initWords();
   updateDashboard();
@@ -1464,9 +1493,6 @@ function init() {
   updateBadges();
   setupKeyboard();
   setupNavigation();
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    // Speech recognition not supported - will show message in speaking section
-  }
 }
 
 function loadState() {
@@ -1481,6 +1507,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem('hola_spanish_state', JSON.stringify(state));
+  scheduleAutoSync();
 }
 
 function checkNewDay() {
@@ -2629,6 +2656,138 @@ function importData(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// ===== GITHUB GIST CLOUD SYNC =====
+let syncConfig = { token: '', gistId: '', autoSync: false, lastSync: '' };
+let autoSyncTimer = null;
+
+function loadSyncConfig() {
+  try {
+    const saved = localStorage.getItem('hola_spanish_sync');
+    if (saved) Object.assign(syncConfig, JSON.parse(saved));
+  } catch (e) {}
+  const tEl = document.getElementById('syncToken');
+  const gEl = document.getElementById('syncGistId');
+  const aEl = document.getElementById('syncAuto');
+  const sEl = document.getElementById('syncStatusText');
+  if (tEl) tEl.value = syncConfig.token || '';
+  if (gEl) gEl.value = syncConfig.gistId || '';
+  if (aEl) aEl.checked = !!syncConfig.autoSync;
+  if (sEl) {
+    sEl.textContent = syncConfig.lastSync ? `上次同步: ${syncConfig.lastSync}` : (syncConfig.token ? '已配置' : '未配置');
+  }
+}
+
+function saveSyncConfig() {
+  syncConfig.token = document.getElementById('syncToken').value.trim();
+  syncConfig.gistId = document.getElementById('syncGistId').value.trim();
+  syncConfig.autoSync = document.getElementById('syncAuto').checked;
+  localStorage.setItem('hola_spanish_sync', JSON.stringify(syncConfig));
+}
+
+function scheduleAutoSync() {
+  if (!syncConfig.autoSync || !syncConfig.token || !syncConfig.gistId) return;
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(() => syncUpload(false), 8000);
+}
+
+async function syncUpload(manual = true) {
+  if (!syncConfig.token) {
+    if (manual) showToast('请先填写 GitHub Token');
+    return;
+  }
+  const payload = {
+    description: 'Hola Spanish Learner Progress Sync',
+    public: false,
+    files: { 'hola_spanish_sync.json': { content: JSON.stringify(state) } }
+  };
+  try {
+    const isNew = !syncConfig.gistId;
+    const url = isNew ? 'https://api.github.com/gists' : `https://api.github.com/gists/${syncConfig.gistId}`;
+    const res = await fetch(url, {
+      method: isNew ? 'POST' : 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${syncConfig.token}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    syncConfig.gistId = data.id;
+    syncConfig.lastSync = new Date().toLocaleString('zh-CN');
+    localStorage.setItem('hola_spanish_sync', JSON.stringify(syncConfig));
+    loadSyncConfig();
+    if (manual) showToast(isNew ? '✅ 已创建私密 Gist 并上传进度！' : '☁️ 进度已上传到云端！');
+  } catch (err) {
+    if (manual) showToast('❌ 上传失败，请检查 Token 是否有 gist 权限 (' + err.message + ')');
+  }
+}
+
+async function syncDownload() {
+  if (!syncConfig.token || !syncConfig.gistId) {
+    showToast('请先填写 GitHub Token 和 Gist ID');
+    return;
+  }
+  try {
+    const res = await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
+      headers: {
+        'Authorization': `Bearer ${syncConfig.token}`,
+        'Accept': 'application/vnd.github+json'
+      }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const file = data.files && data.files['hola_spanish_sync.json'];
+    if (!file || !file.content) throw new Error('Gist 中未找到进度文件');
+    const parsed = JSON.parse(file.content);
+    if (parsed && parsed.words) {
+      Object.assign(state, parsed);
+      localStorage.setItem('hola_spanish_state', JSON.stringify(state));
+      initWords();
+      updateDashboard();
+      renderLessons();
+      updateBadges();
+      syncConfig.lastSync = new Date().toLocaleString('zh-CN');
+      localStorage.setItem('hola_spanish_sync', JSON.stringify(syncConfig));
+      loadSyncConfig();
+      showToast('✅ 已从云端拉取最新进度！');
+    }
+  } catch (err) {
+    showToast('❌ 拉取失败：' + err.message);
+  }
+}
+
+function copySyncConfig() {
+  if (!syncConfig.token || !syncConfig.gistId) {
+    showToast('请先填写 Token 并上传一次以生成 Gist ID');
+    return;
+  }
+  const code = btoa(JSON.stringify({ token: syncConfig.token, gistId: syncConfig.gistId }));
+  navigator.clipboard?.writeText(code).then(
+    () => showToast('📋 已复制配置码！发送到手机粘贴即可'),
+    () => prompt('请复制以下配置码到手机：', code)
+  );
+}
+
+function pasteSyncConfig() {
+  const code = prompt('请粘贴从电脑复制的配置码：');
+  if (!code) return;
+  try {
+    const parsed = JSON.parse(atob(code.trim()));
+    if (!parsed.token || !parsed.gistId) throw new Error('格式错误');
+    syncConfig.token = parsed.token;
+    syncConfig.gistId = parsed.gistId;
+    syncConfig.autoSync = true;
+    localStorage.setItem('hola_spanish_sync', JSON.stringify(syncConfig));
+    loadSyncConfig();
+    showToast('✅ 配置已导入，正在拉取云端进度...');
+    syncDownload();
+  } catch (e) {
+    showToast('❌ 配置码无效');
+  }
 }
 
 // ===== KEYBOARD =====
