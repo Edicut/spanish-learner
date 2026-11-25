@@ -179,6 +179,18 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .phase-pill{font-size:12px;font-weight:600;padding:4px 12px;border-radius:12px;background:var(--surface2);color:var(--text2)}
 .phase-pill.active{background:var(--primary);color:#fff}
 .mic-banner{background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:16px;text-align:left;line-height:1.5}
+/* Grammar & Cloze */
+.grammar-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.grammar-tab{padding:8px 14px;border:2px solid var(--border);background:var(--surface);border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.grammar-tab.active,.grammar-tab:hover{border-color:var(--primary);background:var(--primary);color:#fff}
+.grammar-box{background:var(--surface2);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:16px;line-height:1.7;font-size:14px}
+.grammar-box h4{font-size:16px;color:var(--primary-dark);margin-bottom:8px}
+.grammar-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px;background:var(--surface);border-radius:var(--radius-sm);overflow:hidden}
+.grammar-table th,.grammar-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
+.grammar-table th{background:#eef2ff;color:var(--primary-dark);font-weight:700}
+.grammar-ex{display:flex;align-items:center;justify-content:space-between;background:var(--surface);padding:10px 14px;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border)}
+.cloze-sentence{font-size:20px;font-weight:700;color:var(--text);background:var(--surface2);padding:16px 20px;border-radius:var(--radius-sm);margin:10px auto;line-height:1.6}
+.cloze-blank{display:inline-block;min-width:80px;border-bottom:3px solid var(--primary);color:var(--primary);padding:0 6px}
 /* Mobile bottom nav */
 .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:150;padding:6px 4px;justify-content:space-around;box-shadow:0 -2px 10px rgba(0,0,0,.06)}
 .mobile-nav button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--text2);cursor:pointer;padding:4px 8px;border-radius:8px}
@@ -223,6 +235,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     <button data-section="listening"><span class="icon">🎧</span>听力练习</button>
     <button data-section="speaking"><span class="icon">🎤</span>口语练习</button>
     <button data-section="sentences"><span class="icon">💬</span>句子练习</button>
+    <button data-section="grammar"><span class="icon">📐</span>语法课堂</button>
     <button data-section="wordbank"><span class="icon">📚</span>词库</button>
     <button data-section="settings"><span class="icon">⚙️</span>设置</button>
   </nav>
@@ -304,7 +317,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
                 <div class="meaning" id="learnMeaningZH">-</div>
                 <div class="meaning-en" id="learnMeaningEN">-</div>
                 <div id="learnCognateWrap"></div>
-                <div class="example" id="learnExample"></div>
+                <div class="example" id="learnExampleWrap" style="display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left">
+                  <div>
+                    <div id="learnExample" style="font-weight:600;color:var(--text)"></div>
+                    <div id="learnExampleZH" style="font-size:12px;color:var(--text2);margin-top:2px;font-style:normal"></div>
+                  </div>
+                  <button class="btn btn-outline btn-sm" onclick="speakExample()" title="朗读例句" style="flex-shrink:0">🔊 读例句</button>
+                </div>
               </div>
             </div>
             <div style="display:flex;gap:12px;justify-content:center;margin-top:16px">
@@ -444,8 +463,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     <div class="section" id="sec-sentences">
       <div class="card">
         <div class="card-header"><h3>💬 句子练习</h3><div id="sentenceCounter" style="font-size:14px;color:var(--text2)"></div></div>
-        <div class="speaking-area" id="sentenceArea">
-          <div style="font-size:14px;color:var(--text2);margin-bottom:16px">学习常用句型，练习听说</div>
+        <div class="grammar-tabs" id="sentenceCatTabs"></div>
+        <div class="speaking-area" id="sentenceArea" style="padding-top:10px">
+          <div style="font-size:14px;color:var(--text2);margin-bottom:12px">按场景学高频整句，练习听力和跟读</div>
           <div class="sentence-card">
             <div class="sentence-es" id="sentenceES">-</div>
             <div class="sentence-zh" id="sentenceZH" style="visibility:hidden">-</div>
@@ -460,6 +480,21 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
             <div class="speech-result" id="sentenceSpeechResult"></div>
             <div id="sentenceFeedback"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grammar -->
+    <div class="section" id="sec-grammar">
+      <div class="card">
+        <div class="card-header"><h3>📐 核心语法与用法</h3><span style="font-size:13px;color:var(--text2)">结合英语对比，快速掌握造句规则</span></div>
+        <div class="grammar-tabs" id="grammarTabs"></div>
+        <div id="grammarContent"></div>
+        <div class="card" style="background:var(--surface2);margin-top:16px;margin-bottom:0" id="grammarQuizBox">
+          <div style="font-size:14px;font-weight:700;margin-bottom:8px">✍️ 小试牛刀</div>
+          <div id="grammarQuizQ" style="font-size:16px;margin-bottom:12px"></div>
+          <div class="quiz-options" id="grammarQuizOpts" style="margin-top:8px"></div>
+          <div id="grammarQuizFb" style="margin-top:10px;font-size:13px;font-weight:600"></div>
         </div>
       </div>
     </div>
@@ -522,6 +557,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
   <button class="active" data-section="dashboard" onclick="switchSection('dashboard')"><span>📊</span>首页</button>
   <button data-section="learn" onclick="switchSection('learn')"><span>📖</span>学新词</button>
   <button data-section="review" onclick="switchSection('review')"><span>🔄</span>复习</button>
+  <button data-section="grammar" onclick="switchSection('grammar')"><span>📐</span>语法</button>
   <button data-section="listening" onclick="switchSection('listening')"><span>🎧</span>听力</button>
   <button data-section="speaking" onclick="switchSection('speaking')"><span>🎤</span>口语</button>
 </nav>
@@ -886,40 +922,498 @@ const VOCAB = [
   {es:"mismo",zh:"同样的",en:"same",cat:"其他",ex:"Lo mismo de siempre."},
   {es:"primero",zh:"第一",en:"first",cat:"其他",ex:"El primero en llegar."},
   {es:"último",zh:"最后",en:"last",cat:"其他",ex:"El último día."},
+  // === 高频动词进阶 ===
+  {es:"entender",zh:"理解/明白",en:"to understand",cat:"动词",ex:"No entiendo esta palabra."},
+  {es:"comprender",zh:"理解",en:"to comprehend",cat:"动词",ex:"Comprendo tu situación."},
+  {es:"recordar",zh:"记得",en:"to remember",cat:"动词",ex:"No recuerdo su nombre."},
+  {es:"olvidar",zh:"忘记",en:"to forget",cat:"动词",ex:"No olvides las llaves."},
+  {es:"empezar",zh:"开始",en:"to start/begin",cat:"动词",ex:"Empezamos a las nueve."},
+  {es:"comenzar",zh:"开始",en:"to commence",cat:"动词",ex:"La película comienza ya."},
+  {es:"terminar",zh:"结束/完成",en:"to finish",cat:"动词",ex:"Termino mi trabajo pronto."},
+  {es:"acabar",zh:"完成/刚...",en:"to finish/just did",cat:"动词",ex:"Acabo de llegar a casa."},
+  {es:"seguir",zh:"继续/跟随",en:"to continue/follow",cat:"动词",ex:"Sigue todo recto."},
+  {es:"cambiar",zh:"改变/换",en:"to change",cat:"动词",ex:"Quiero cambiar de trabajo."},
+  {es:"elegir",zh:"选择",en:"to choose",cat:"动词",ex:"Elige tu favorito."},
+  {es:"decidir",zh:"决定",en:"to decide",cat:"动词",ex:"No puedo decidir ahora."},
+  {es:"intentar",zh:"尝试",en:"to try",cat:"动词",ex:"Voy a intentarlo."},
+  {es:"probar",zh:"试吃/尝试",en:"to taste/try",cat:"动词",ex:"Prueba esta paella."},
+  {es:"lograr",zh:"成功做到",en:"to achieve",cat:"动词",ex:"Lo vamos a lograr."},
+  {es:"ganar",zh:"赢/赚钱",en:"to win/earn",cat:"动词",ex:"Gana mucho dinero."},
+  {es:"perder",zh:"丢失/输",en:"to lose",cat:"动词",ex:"Perdí mi cartera."},
+  {es:"enviar",zh:"发送",en:"to send",cat:"动词",ex:"Te envío un mensaje."},
+  {es:"mandar",zh:"发送/命令",en:"to send/order",cat:"动词",ex:"Mándame la foto."},
+  {es:"recibir",zh:"收到",en:"to receive",cat:"动词",ex:"Recibí tu correo."},
+  {es:"traer",zh:"带来",en:"to bring",cat:"动词",ex:"Trae el vino, por favor."},
+  {es:"tomar",zh:"拿/喝/乘坐",en:"to take/drink",cat:"动词",ex:"Tomo el metro cada día."},
+  {es:"dejar",zh:"离开/留下/允许",en:"to leave/let",cat:"动词",ex:"Déjame pensar un poco."},
+  {es:"quedar",zh:"约定/剩下/位于",en:"to meet/remain",cat:"动词",ex:"Quedamos a las seis."},
+  {es:"quedarse",zh:"留下/待在",en:"to stay",cat:"动词",ex:"Me quedo en casa hoy."},
+  {es:"volver",zh:"回来/返回",en:"to return",cat:"动词",ex:"Vuelvo en diez minutos."},
+  {es:"regresar",zh:"回去/返回",en:"to return",cat:"动词",ex:"Regresamos mañana."},
+  {es:"subir",zh:"上去/上传/涨",en:"to go up/upload",cat:"动词",ex:"Sube por las escaleras."},
+  {es:"bajar",zh:"下来/下载/降",en:"to go down/download",cat:"动词",ex:"Baja el volumen."},
+  {es:"entregar",zh:"交付/递交",en:"to deliver/hand in",cat:"动词",ex:"Entrego el informe hoy."},
+  {es:"vender",zh:"卖",en:"to sell",cat:"动词",ex:"Venden fruta fresca."},
+  {es:"costar",zh:"花费",en:"to cost",cat:"动词",ex:"¿Cuánto cuesta esto?"},
+  {es:"valer",zh:"值/有价值",en:"to be worth",cat:"动词",ex:"Vale la pena visitarlo."},
+  {es:"usar",zh:"使用",en:"to use",cat:"动词",ex:"Uso esta aplicación."},
+  {es:"utilizar",zh:"利用/使用",en:"to utilize",cat:"动词",ex:"Utiliza el diccionario."},
+  {es:"crear",zh:"创造",en:"to create",cat:"动词",ex:"Crea una cuenta nueva."},
+  {es:"construir",zh:"建造",en:"to build",cat:"动词",ex:"Construyen un puente."},
+  {es:"romper",zh:"打破",en:"to break",cat:"动词",ex:"Se rompió el vaso."},
+  {es:"arreglar",zh:"修理/整理",en:"to fix/arrange",cat:"动词",ex:"Arreglé mi computadora."},
+  {es:"limpiar",zh:"打扫/清洁",en:"to clean",cat:"动词",ex:"Limpio mi habitación."},
+  {es:"lavar",zh:"洗",en:"to wash",cat:"动词",ex:"Lava las manos."},
+  {es:"cocinar",zh:"做饭",en:"to cook",cat:"动词",ex:"Me gusta cocinar pasta."},
+  {es:"preparar",zh:"准备",en:"to prepare",cat:"动词",ex:"Preparo el desayuno."},
+  {es:"invitar",zh:"邀请/请客",en:"to invite",cat:"动词",ex:"Te invito a cenar."},
+  {es:"visitar",zh:"拜访/参观",en:"to visit",cat:"动词",ex:"Visitamos Barcelona."},
+  {es:"viajar",zh:"旅行",en:"to travel",cat:"动词",ex:"Viajo por trabajo."},
+  {es:"conducir",zh:"开车",en:"to drive",cat:"动词",ex:"Conduce con cuidado."},
+  {es:"manejar",zh:"驾驶/处理",en:"to drive/manage",cat:"动词",ex:"Sabe manejar bien."},
+  {es:"volar",zh:"飞",en:"to fly",cat:"动词",ex:"Volamos a Madrid."},
+  {es:"nadar",zh:"游泳",en:"to swim",cat:"动词",ex:"Nado en la piscina."},
+  {es:"bailar",zh:"跳舞",en:"to dance",cat:"动词",ex:"Bailan salsa muy bien."},
+  {es:"cantar",zh:"唱歌",en:"to sing",cat:"动词",ex:"Canta una canción."},
+  {es:"reír",zh:"笑",en:"to laugh",cat:"动词",ex:"Nos hace reír mucho."},
+  {es:"llorar",zh:"哭",en:"to cry",cat:"动词",ex:"El bebé está llorando."},
+  {es:"sonreír",zh:"微笑",en:"to smile",cat:"动词",ex:"Siempre sonríe."},
+  {es:"gritar",zh:"喊叫",en:"to shout",cat:"动词",ex:"No grites, por favor."},
+  {es:"preguntar",zh:"问",en:"to ask",cat:"动词",ex:"Pregunta al profesor."},
+  {es:"responder",zh:"回答",en:"to answer",cat:"动词",ex:"Responde la pregunta."},
+  {es:"contestar",zh:"接听/回答",en:"to reply/answer",cat:"动词",ex:"Contesta el teléfono."},
+  {es:"explicar",zh:"解释",en:"to explain",cat:"动词",ex:"¿Puedes explicarlo?"},
+  {es:"mostrar",zh:"展示",en:"to show",cat:"动词",ex:"Muéstrame el camino."},
+  {es:"enseñar",zh:"教/展示",en:"to teach/show",cat:"动词",ex:"Enséñame tu foto."},
+  {es:"compartir",zh:"分享",en:"to share",cat:"动词",ex:"Compartimos la comida."},
+  {es:"cuidar",zh:"照顾",en:"to take care of",cat:"动词",ex:"Cuida tu salud."},
+  {es:"proteger",zh:"保护",en:"to protect",cat:"动词",ex:"Protege tus datos."},
+  {es:"elegir",zh:"挑选",en:"to pick",cat:"动词",ex:"Elige una opción."},
+  {es:"aceptar",zh:"接受",en:"to accept",cat:"动词",ex:"Acepto tu invitación."},
+  {es:"rechazar",zh:"拒绝",en:"to reject",cat:"动词",ex:"Rechazó la oferta."},
+  {es:"prometer",zh:"承诺",en:"to promise",cat:"动词",ex:"Te lo prometo."},
+  {es:"esperar",zh:"等待/期望",en:"to wait/expect",cat:"动词",ex:"Espero tu respuesta."},
+  {es:"desear",zh:"祝愿/想要",en:"to wish",cat:"动词",ex:"Te deseo lo mejor."},
+  {es:"amar",zh:"爱",en:"to love",cat:"动词",ex:"Amo a mi familia."},
+  {es:"odiar",zh:"讨厌",en:"to hate",cat:"动词",ex:"Odio madrugar."},
+  {es:"preferir",zh:"更喜欢",en:"to prefer",cat:"动词",ex:"Prefiero el té."},
+  {es:"parecer",zh:"看起来像/觉得",en:"to seem",cat:"动词",ex:"Me parece una buena idea."},
+  {es:"existir",zh:"存在",en:"to exist",cat:"动词",ex:"Ese lugar no existe."},
+  {es:"ocurrir",zh:"发生",en:"to happen/occur",cat:"动词",ex:"¿Qué ocurrió ayer?"},
+  {es:"suceder",zh:"发生",en:"to happen",cat:"动词",ex:"A veces sucede así."},
+  {es:"significar",zh:"意味着/意思是",en:"to mean",cat:"动词",ex:"¿Qué significa esto?"},
+  {es:"depender",zh:"取决于",en:"to depend",cat:"动词",ex:"Depende del tiempo."},
+  {es:"funcionar",zh:"运转/管用",en:"to work/function",cat:"动词",ex:"El wifi no funciona."},
+  {es:"servir",zh:"服务/有用",en:"to serve/be useful",cat:"动词",ex:"¿Para qué sirve esto?"},
+  {es:"tardar",zh:"花费时间/迟到",en:"to take time",cat:"动词",ex:"Tarda diez minutos."},
+  {es:"durar",zh:"持续",en:"to last",cat:"动词",ex:"La clase dura una hora."},
+  {es:"nacer",zh:"出生",en:"to be born",cat:"动词",ex:"Nací en China."},
+  {es:"crecer",zh:"成长/增长",en:"to grow",cat:"动词",ex:"Los niños crecen rápido."},
+  {es:"morir",zh:"死",en:"to die",cat:"动词",ex:"Las flores mueren sin agua."},
+  {es:"despertar",zh:"醒来",en:"to wake up",cat:"动词",ex:"Me despierto a las siete."},
+  {es:"levantar",zh:"举起/起床",en:"to lift/get up",cat:"动词",ex:"Me levanto temprano."},
+  {es:"sentar",zh:"坐",en:"to sit",cat:"动词",ex:"Siéntate aquí, por favor."},
+  {es:"acostar",zh:"躺下/睡觉",en:"to go to bed",cat:"动词",ex:"Me acuesto a las once."},
+  {es:"vestir",zh:"穿衣",en:"to dress",cat:"动词",ex:"Se viste rápido."},
+  {es:"duchar",zh:"淋浴",en:"to shower",cat:"动词",ex:"Me ducho por la mañana."},
+  {es:"descansar",zh:"休息",en:"to rest",cat:"动词",ex:"Necesito descansar."},
+  // === 高频形容词进阶 ===
+  {es:"excelente",zh:"极好的",en:"excellent",cat:"形容词",ex:"Un servicio excelente."},
+  {es:"perfecto",zh:"完美的",en:"perfect",cat:"形容词",ex:"El plan es perfecto."},
+  {es:"terrible",zh:"糟糕的",en:"terrible",cat:"形容词",ex:"Hace un tiempo terrible."},
+  {es:"interesante",zh:"有趣的",en:"interesting",cat:"形容词",ex:"Un libro muy interesante."},
+  {es:"aburrido",zh:"无聊的",en:"boring/bored",cat:"形容词",ex:"La película es aburrida."},
+  {es:"divertido",zh:"好玩的",en:"fun/funny",cat:"形容词",ex:"Es un juego divertido."},
+  {es:"hermoso",zh:"美丽的",en:"beautiful",cat:"形容词",ex:"Qué paisaje tan hermoso."},
+  {es:"lindo",zh:"可爱的/漂亮的",en:"cute/pretty",cat:"形容词",ex:"Un gato muy lindo."},
+  {es:"guapo",zh:"帅气的/漂亮的",en:"handsome/good-looking",cat:"形容词",ex:"Qué guapo estás hoy."},
+  {es:"inteligente",zh:"聪明的",en:"intelligent",cat:"形容词",ex:"Es una persona inteligente."},
+  {es:"tonto",zh:"愚蠢的",en:"silly/foolish",cat:"形容词",ex:"No seas tonto."},
+  {es:"amable",zh:"友善的",en:"kind",cat:"形容词",ex:"Gracias, eres muy amable."},
+  {es:"simpático",zh:"和蔼的/讨喜的",en:"nice/friendly",cat:"形容词",ex:"Tu amigo es simpático."},
+  {es:"antipático",zh:"不友好的",en:"unfriendly",cat:"形容词",ex:"El camarero es antipático."},
+  {es:"fuerte",zh:"强壮的/强烈的",en:"strong",cat:"形容词",ex:"Un café muy fuerte."},
+  {es:"débil",zh:"虚弱的",en:"weak",cat:"形容词",ex:"Me siento un poco débil."},
+  {es:"duro",zh:"硬的/困难的",en:"hard",cat:"形容词",ex:"Es un trabajo duro."},
+  {es:"suave",zh:"柔软的/温和的",en:"soft/gentle",cat:"形容词",ex:"Una tela muy suave."},
+  {es:"lleno",zh:"满的",en:"full",cat:"形容词",ex:"El restaurante está lleno."},
+  {es:"vacío",zh:"空的",en:"empty",cat:"形容词",ex:"La calle está vacía."},
+  {es:"limpio",zh:"干净的",en:"clean",cat:"形容词",ex:"La habitación está limpia."},
+  {es:"sucio",zh:"脏的",en:"dirty",cat:"形容词",ex:"Los zapatos están sucios."},
+  {es:"caro",zh:"贵的",en:"expensive",cat:"形容词",ex:"Este reloj es muy caro."},
+  {es:"barato",zh:"便宜的",en:"cheap",cat:"形容词",ex:"Busco un hotel barato."},
+  {es:"gratis",zh:"免费的",en:"free (no cost)",cat:"形容词",ex:"La entrada es gratis."},
+  {es:"cerca",zh:"近的",en:"near/close",cat:"形容词",ex:"Está muy cerca de aquí."},
+  {es:"lejos",zh:"远的",en:"far",cat:"形容词",ex:"Mi casa está lejos."},
+  {es:"posible",zh:"可能的",en:"possible",cat:"形容词",ex:"Todo es posible."},
+  {es:"imposible",zh:"不可能的",en:"impossible",cat:"形容词",ex:"Parece imposible."},
+  {es:"necesario",zh:"必要的",en:"necessary",cat:"形容词",ex:"Es necesario practicar."},
+  {es:"seguro",zh:"安全的/确定的",en:"safe/sure",cat:"形容词",ex:"¿Estás seguro?"},
+  {es:"peligroso",zh:"危险的",en:"dangerous",cat:"形容词",ex:"Es peligroso nadar aquí."},
+  {es:"famoso",zh:"著名的",en:"famous",cat:"形容词",ex:"Un restaurante famoso."},
+  {es:"popular",zh:"受欢迎的",en:"popular",cat:"形容词",ex:"Es muy popular aquí."},
+  {es:"especial",zh:"特别的",en:"special",cat:"形容词",ex:"Hoy es un día especial."},
+  {es:"normal",zh:"正常的",en:"normal",cat:"形容词",ex:"Es completamente normal."},
+  {es:"diferente",zh:"不同的",en:"different",cat:"形容词",ex:"Cada país es diferente."},
+  {es:"igual",zh:"相同的",en:"equal/same",cat:"形容词",ex:"Me da igual."},
+  {es:"correcto",zh:"正确的",en:"correct",cat:"形容词",ex:"Tu respuesta es correcta."},
+  {es:"falso",zh:"假的/错误的",en:"false",cat:"形容词",ex:"Una noticia falsa."},
+  {es:"verdadero",zh:"真实的",en:"true/real",cat:"形容词",ex:"Un amigo verdadero."},
+  {es:"claro",zh:"清楚的/浅色的",en:"clear/light",cat:"形容词",ex:"Está muy claro."},
+  {es:"oscuro",zh:"黑暗的/深色的",en:"dark",cat:"形容词",ex:"El cielo está oscuro."},
+  {es:"ruidoso",zh:"吵闹的",en:"noisy",cat:"形容词",ex:"Una calle muy ruidosa."},
+  {es:"tranquilo",zh:"安静的/平静的",en:"quiet/calm",cat:"形容词",ex:"Un pueblo tranquilo."},
+  {es:"ocupado",zh:"忙碌的/被占用的",en:"busy/occupied",cat:"形容词",ex:"Estoy muy ocupado hoy."},
+  {es:"listo",zh:"准备好的/聪明的",en:"ready/clever",cat:"形容词",ex:"¿Estás listo para salir?"},
+  {es:"nervioso",zh:"紧张的",en:"nervous",cat:"形容词",ex:"Estoy un poco nervioso."},
+  {es:"enojado",zh:"生气的",en:"angry",cat:"形容词",ex:"No estés enojado."},
+  {es:"preocupado",zh:"担心的",en:"worried",cat:"形容词",ex:"Estoy preocupado por ti."},
+  {es:"sorprendido",zh:"惊讶的",en:"surprised",cat:"形容词",ex:"Estoy muy sorprendido."},
+  {es:"orgulloso",zh:"骄傲的/自豪的",en:"proud",cat:"形容词",ex:"Estoy orgulloso de ti."},
+  {es:"dulce",zh:"甜的",en:"sweet",cat:"形容词",ex:"Un postre muy dulce."},
+  {es:"salado",zh:"咸的",en:"salty",cat:"形容词",ex:"La sopa está salada."},
+  {es:"picante",zh:"辣的",en:"spicy",cat:"形容词",ex:"¿Te gusta la comida picante?"},
+  {es:"amargo",zh:"苦的",en:"bitter",cat:"形容词",ex:"El café está amargo."},
+  {es:"fresco",zh:"新鲜的/凉爽的",en:"fresh/cool",cat:"形容词",ex:"Pan fresco y aire fresco."},
+  // === 办公与科技 ===
+  {es:"empresa",zh:"公司",en:"company",cat:"办公科技",ex:"Trabajo en una empresa grande."},
+  {es:"reunión",zh:"会议",en:"meeting",cat:"办公科技",ex:"Tengo una reunión a las diez."},
+  {es:"proyecto",zh:"项目",en:"project",cat:"办公科技",ex:"Un proyecto importante."},
+  {es:"jefe",zh:"老板/上司",en:"boss",cat:"办公科技",ex:"Mi jefe es muy amable."},
+  {es:"compañero",zh:"同事/伙伴",en:"colleague/partner",cat:"办公科技",ex:"Mis compañeros de trabajo."},
+  {es:"equipo",zh:"团队/设备",en:"team/equipment",cat:"办公科技",ex:"Trabajamos en equipo."},
+  {es:"correo",zh:"邮件/邮局",en:"email/mail",cat:"办公科技",ex:"Revisa tu correo electrónico."},
+  {es:"mensaje",zh:"消息",en:"message",cat:"办公科技",ex:"Te mandé un mensaje."},
+  {es:"archivo",zh:"文件/档案",en:"file",cat:"办公科技",ex:"Descarga el archivo."},
+  {es:"documento",zh:"文档",en:"document",cat:"办公科技",ex:"Firma este documento."},
+  {es:"pantalla",zh:"屏幕",en:"screen",cat:"办公科技",ex:"Mira la pantalla."},
+  {es:"teclado",zh:"键盘",en:"keyboard",cat:"办公科技",ex:"Un teclado inalámbrico."},
+  {es:"internet",zh:"互联网",en:"internet",cat:"办公科技",ex:"¿Hay conexión a internet?"},
+  {es:"contraseña",zh:"密码",en:"password",cat:"办公科技",ex:"Olvidé mi contraseña."},
+  {es:"cuenta",zh:"账号/账单",en:"account/bill",cat:"办公科技",ex:"Crea tu cuenta gratis."},
+  {es:"página",zh:"页面",en:"page",cat:"办公科技",ex:"Abre la página web."},
+  {es:"aplicación",zh:"应用程序",en:"application/app",cat:"办公科技",ex:"Descarga la aplicación."},
+  {es:"dato",zh:"数据",en:"data/fact",cat:"办公科技",ex:"Guarda tus datos."},
+  {es:"sistema",zh:"系统",en:"system",cat:"办公科技",ex:"El sistema funciona bien."},
+  {es:"programa",zh:"程序/节目",en:"program",cat:"办公科技",ex:"Un programa útil."},
+  {es:"código",zh:"代码/密码",en:"code",cat:"办公科技",ex:"Escribe el código."},
+  {es:"red",zh:"网络",en:"network",cat:"办公科技",ex:"La red social."},
+  {es:"batería",zh:"电池",en:"battery",cat:"办公科技",ex:"No tengo batería."},
+  {es:"cargador",zh:"充电器",en:"charger",cat:"办公科技",ex:"¿Tienes un cargador?"},
+  {es:"cámara",zh:"相机",en:"camera",cat:"办公科技",ex:"Toma una foto con la cámara."},
+  {es:"foto",zh:"照片",en:"photo",cat:"办公科技",ex:"¡Qué buena foto!"},
+  {es:"video",zh:"视频",en:"video",cat:"办公科技",ex:"Veo un video en español."},
+  {es:"música",zh:"音乐",en:"music",cat:"办公科技",ex:"Escucho música latina."},
+  {es:"noticia",zh:"新闻",en:"news",cat:"办公科技",ex:"Leo las noticias hoy."},
+  {es:"información",zh:"信息",en:"information",cat:"办公科技",ex:"Necesito más información."},
+  {es:"idea",zh:"主意/想法",en:"idea",cat:"办公科技",ex:"¡Qué buena idea!"},
+  {es:"decisión",zh:"决定",en:"decision",cat:"办公科技",ex:"Es una buena decisión."},
+  {es:"resultado",zh:"结果",en:"result",cat:"办公科技",ex:"El resultado es positivo."},
+  {es:"éxito",zh:"成功",en:"success",cat:"办公科技",ex:"¡Mucho éxito!"},
+  {es:"error",zh:"错误",en:"error/mistake",cat:"办公科技",ex:"Cometí un error."},
+  {es:"sueldo",zh:"工资",en:"salary",cat:"办公科技",ex:"Tiene un buen sueldo."},
+  {es:"contrato",zh:"合同",en:"contract",cat:"办公科技",ex:"Lee el contrato antes."},
+  {es:"horario",zh:"时间表",en:"schedule",cat:"办公科技",ex:"¿Cuál es tu horario?"},
+  // === 购物与金钱 ===
+  {es:"precio",zh:"价格",en:"price",cat:"购物金钱",ex:"¿Cuál es el precio?"},
+  {es:"tarjeta",zh:"银行卡/卡片",en:"card",cat:"购物金钱",ex:"¿Aceptan tarjeta?"},
+  {es:"efectivo",zh:"现金",en:"cash",cat:"购物金钱",ex:"Pago en efectivo."},
+  {es:"cambio",zh:"零钱/变化",en:"change",cat:"购物金钱",ex:"Aquí tienes tu cambio."},
+  {es:"recibo",zh:"收据",en:"receipt",cat:"购物金钱",ex:"¿Necesitas recibo?"},
+  {es:"descuento",zh:"折扣",en:"discount",cat:"购物金钱",ex:"Tiene un veinte por ciento de descuento."},
+  {es:"oferta",zh:"特价/报价",en:"offer/sale",cat:"购物金钱",ex:"Está en oferta hoy."},
+  {es:"talla",zh:"尺码",en:"size (clothes)",cat:"购物金钱",ex:"¿Qué talla usas?"},
+  {es:"bolsillo",zh:"口袋",en:"pocket",cat:"购物金钱",ex:"En el bolsillo."},
+  {es:"cartera",zh:"钱包",en:"wallet",cat:"购物金钱",ex:"Olvidé mi cartera."},
+  {es:"regalo",zh:"礼物",en:"gift",cat:"购物金钱",ex:"Un regalo para ti."},
+  {es:"caja",zh:"盒子/收银台",en:"box/cashier",cat:"购物金钱",ex:"Paga en la caja."},
+  {es:"euro",zh:"欧元",en:"euro",cat:"购物金钱",ex:"Cuesta diez euros."},
+  {es:"dólar",zh:"美元",en:"dollar",cat:"购物金钱",ex:"Veinte dólares."},
+  {es:"camisa",zh:"衬衫",en:"shirt",cat:"购物金钱",ex:"Una camisa blanca."},
+  {es:"camiseta",zh:"T恤",en:"t-shirt",cat:"购物金钱",ex:"Una camiseta azul."},
+  {es:"pantalón",zh:"裤子",en:"pants",cat:"购物金钱",ex:"Pantalones vaqueros."},
+  {es:"vestido",zh:"连衣裙",en:"dress",cat:"购物金钱",ex:"Un vestido elegante."},
+  {es:"chaqueta",zh:"夹克",en:"jacket",cat:"购物金钱",ex:"Ponte la chaqueta."},
+  {es:"abrigo",zh:"大衣",en:"coat",cat:"购物金钱",ex:"Hace frío, lleva abrigo."},
+  {es:"sombrero",zh:"帽子",en:"hat",cat:"购物金钱",ex:"Un sombrero de sol."},
+  {es:"gafas",zh:"眼镜",en:"glasses",cat:"购物金钱",ex:"Mis gafas de sol."},
+  // === 健康与医疗 ===
+  {es:"salud",zh:"健康",en:"health",cat:"健康",ex:"¡Salud! La salud es primero."},
+  {es:"dolor",zh:"疼痛",en:"pain",cat:"健康",ex:"Tengo dolor de estómago."},
+  {es:"fiebre",zh:"发烧",en:"fever",cat:"健康",ex:"Tiene un poco de fiebre."},
+  {es:"tos",zh:"咳嗽",en:"cough",cat:"健康",ex:"Tengo mucha tos."},
+  {es:"resfriado",zh:"感冒",en:"cold (illness)",cat:"健康",ex:"Estoy resfriado."},
+  {es:"medicina",zh:"药",en:"medicine",cat:"健康",ex:"Toma esta medicina."},
+  {es:"pastilla",zh:"药片",en:"pill",cat:"健康",ex:"Una pastilla al día."},
+  {es:"receta",zh:"处方/食谱",en:"prescription/recipe",cat:"健康",ex:"Necesitas receta médica."},
+  {es:"cita",zh:"预约/约会",en:"appointment/date",cat:"健康",ex:"Tengo cita con el médico."},
+  {es:"emergencia",zh:"紧急情况",en:"emergency",cat:"健康",ex:"Es una emergencia."},
+  {es:"ambulancia",zh:"救护车",en:"ambulance",cat:"健康",ex:"Llama a una ambulancia."},
+  {es:"estómago",zh:"胃",en:"stomach",cat:"健康",ex:"Me duele el estómago."},
+  {es:"garganta",zh:"喉咙",en:"throat",cat:"健康",ex:"Me duele la garganta."},
+  {es:"sangre",zh:"血",en:"blood",cat:"健康",ex:"Análisis de sangre."},
+  {es:"ejercicio",zh:"锻炼/练习",en:"exercise",cat:"健康",ex:"Hago ejercicio cada día."},
+  {es:"deporte",zh:"体育运动",en:"sport",cat:"健康",ex:"¿Qué deporte practicas?"},
+  {es:"fútbol",zh:"足球",en:"soccer/football",cat:"健康",ex:"Me gusta el fútbol."},
+  // === 饮食进阶 ===
+  {es:"comida",zh:"食物/饭",en:"food/meal",cat:"食物",ex:"La comida está deliciosa."},
+  {es:"bebida",zh:"饮料",en:"drink/beverage",cat:"食物",ex:"¿Qué bebida quieres?"},
+  {es:"jugo",zh:"果汁",en:"juice",cat:"食物",ex:"Jugo de naranja."},
+  {es:"zumo",zh:"果汁(西班牙)",en:"juice (Spain)",cat:"食物",ex:"Un zumo natural."},
+  {es:"cerdo",zh:"猪肉",en:"pork",cat:"食物",ex:"Carne de cerdo."},
+  {es:"ternera",zh:"牛肉",en:"beef",cat:"食物",ex:"Filete de ternera."},
+  {es:"jamón",zh:"火腿",en:"ham",cat:"食物",ex:"Jamón ibérico."},
+  {es:"patata",zh:"土豆(西班牙)",en:"potato",cat:"食物",ex:"Patatas fritas."},
+  {es:"papa",zh:"土豆(拉美)",en:"potato (LatAm)",cat:"食物",ex:"Papas fritas."},
+  {es:"tomate",zh:"番茄",en:"tomato",cat:"食物",ex:"Ensalada de tomate."},
+  {es:"cebolla",zh:"洋葱",en:"onion",cat:"食物",ex:"Sin cebolla, por favor."},
+  {es:"ajo",zh:"大蒜",en:"garlic",cat:"食物",ex:"Pan con ajo."},
+  {es:"limón",zh:"柠檬",en:"lemon",cat:"食物",ex:"Agua con limón."},
+  {es:"plátano",zh:"香蕉",en:"banana",cat:"食物",ex:"Un plátano maduro."},
+  {es:"fresa",zh:"草莓",en:"strawberry",cat:"食物",ex:"Fresas con crema."},
+  {es:"uva",zh:"葡萄",en:"grape",cat:"食物",ex:"Uvas dulces."},
+  {es:"chocolate",zh:"巧克力",en:"chocolate",cat:"食物",ex:"Helado de chocolate."},
+  {es:"helado",zh:"冰淇淋",en:"ice cream",cat:"食物",ex:"Quiero un helado."},
+  {es:"pastel",zh:"蛋糕",en:"cake",cat:"食物",ex:"Pastel de cumpleaños."},
+  {es:"galleta",zh:"饼干",en:"cookie",cat:"食物",ex:"Galletas con leche."},
+  {es:"aceite",zh:"油",en:"oil",cat:"食物",ex:"Aceite de oliva."},
+  {es:"pimienta",zh:"胡椒",en:"pepper",cat:"食物",ex:"Sal y pimienta."},
+  {es:"menú",zh:"菜单",en:"menu",cat:"食物",ex:"¿Me trae el menú?"},
+  {es:"propina",zh:"小费",en:"tip",cat:"食物",ex:"Dejamos propina."},
+  {es:"camarero",zh:"服务员",en:"waiter",cat:"食物",ex:"Camarero, la cuenta."},
+  {es:"mesa",zh:"餐桌",en:"table",cat:"食物",ex:"Una mesa para dos."},
+  // === 城市与交通 ===
+  {es:"metro",zh:"地铁",en:"subway",cat:"旅行",ex:"La estación de metro."},
+  {es:"estación",zh:"车站/季节",en:"station/season",cat:"旅行",ex:"En la estación central."},
+  {es:"parada",zh:"公交站",en:"bus stop",cat:"旅行",ex:"La próxima parada."},
+  {es:"esquina",zh:"拐角",en:"corner",cat:"旅行",ex:"En la esquina."},
+  {es:"semáforo",zh:"红绿灯",en:"traffic light",cat:"旅行",ex:"Gira en el semáforo."},
+  {es:"puente",zh:"桥",en:"bridge",cat:"旅行",ex:"Cruza el puente."},
+  {es:"plaza",zh:"广场",en:"square/plaza",cat:"旅行",ex:"La Plaza Mayor."},
+  {es:"centro",zh:"市中心",en:"downtown/center",cat:"旅行",ex:"Vamos al centro."},
+  {es:"barrio",zh:"街区",en:"neighborhood",cat:"旅行",ex:"Un barrio tranquilo."},
+  {es:"edificio",zh:"大楼",en:"building",cat:"旅行",ex:"Un edificio moderno."},
+  {es:"piso",zh:"楼层/公寓",en:"floor/apartment",cat:"旅行",ex:"Vivo en el tercer piso."},
+  {es:"apartamento",zh:"公寓",en:"apartment",cat:"旅行",ex:"Alquilo un apartamento."},
+  {es:"habitación",zh:"房间",en:"room",cat:"旅行",ex:"Una habitación doble."},
+  {es:"llave",zh:"钥匙",en:"key",cat:"旅行",ex:"La llave de la habitación."},
+  {es:"equipaje",zh:"行李",en:"luggage",cat:"旅行",ex:"Recoge tu equipaje."},
+  {es:"vuelo",zh:"航班",en:"flight",cat:"旅行",ex:"Mi vuelo sale tarde."},
+  {es:"entrada",zh:"入口/门票",en:"entrance/ticket",cat:"旅行",ex:"La entrada del museo."},
+  {es:"salida",zh:"出口/出发",en:"exit/departure",cat:"旅行",ex:"Salida de emergencia."},
+  {es:"norte",zh:"北",en:"north",cat:"旅行",ex:"Al norte del país."},
+  {es:"sur",zh:"南",en:"south",cat:"旅行",ex:"Viajo al sur."},
+  {es:"este",zh:"东",en:"east",cat:"旅行",ex:"Hacia el este."},
+  {es:"oeste",zh:"西",en:"west",cat:"旅行",ex:"Al oeste."},
+  // === 时间与频率 ===
+  {es:"temprano",zh:"早",en:"early",cat:"时间",ex:"Llego temprano."},
+  {es:"tarde",zh:"晚/下午",en:"late/afternoon",cat:"时间",ex:"Perdón por llegar tarde."},
+  {es:"pronto",zh:"很快",en:"soon",cat:"时间",ex:"Nos vemos pronto."},
+  {es:"todavía",zh:"仍然/还",en:"still/yet",cat:"时间",ex:"Todavía estoy aquí."},
+  {es:"ya",zh:"已经/立刻",en:"already/now",cat:"时间",ex:"Ya terminé."},
+  {es:"aún",zh:"还/仍然",en:"still/yet",cat:"时间",ex:"Aún no lo sé."},
+  {es:"luego",zh:"待会儿/然后",en:"later/then",cat:"时间",ex:"Te llamo luego."},
+  {es:"entonces",zh:"那时/那么",en:"then/so",cat:"时间",ex:"Entonces, ¿vamos?"},
+  {es:"mientras",zh:"当...时候",en:"while",cat:"时间",ex:"Escucho música mientras trabajo."},
+  {es:"durante",zh:"在...期间",en:"during",cat:"时间",ex:"Durante las vacaciones."},
+  {es:"a veces",zh:"有时候",en:"sometimes",cat:"时间",ex:"A veces cocino en casa."},
+  {es:"a menudo",zh:"经常",en:"often",cat:"时间",ex:"Voy al cine a menudo."},
+  {es:"casi nunca",zh:"几乎从不",en:"hardly ever",cat:"时间",ex:"Casi nunca bebo refrescos."},
+  {es:"todos los días",zh:"每天",en:"every day",cat:"时间",ex:"Practico todos los días."},
+  {es:"fin de semana",zh:"周末",en:"weekend",cat:"时间",ex:"¡Buen fin de semana!"},
+  {es:"primavera",zh:"春天",en:"spring",cat:"时间",ex:"En primavera hay flores."},
+  {es:"verano",zh:"夏天",en:"summer",cat:"时间",ex:"En verano hace calor."},
+  {es:"otoño",zh:"秋天",en:"autumn/fall",cat:"时间",ex:"En otoño caen las hojas."},
+  {es:"invierno",zh:"冬天",en:"winter",cat:"时间",ex:"En invierno nieva."},
+  {es:"siglo",zh:"世纪",en:"century",cat:"时间",ex:"El siglo veintiuno."},
+  // === 社交、连接词与常用表达 ===
+  {es:"además",zh:"此外/而且",en:"moreover/besides",cat:"连接词",ex:"Es barato y además bueno."},
+  {es:"sin embargo",zh:"然而",en:"however",cat:"连接词",ex:"Es difícil; sin embargo, me gusta."},
+  {es:"aunque",zh:"虽然/尽管",en:"although",cat:"连接词",ex:"Voy aunque llueva."},
+  {es:"entonces",zh:"所以/那么",en:"so/then",cat:"连接词",ex:"Tengo frío, entonces cierro."},
+  {es:"por eso",zh:"因此",en:"therefore",cat:"连接词",ex:"Por eso estoy aquí."},
+  {es:"quizás",zh:"也许",en:"maybe/perhaps",cat:"连接词",ex:"Quizás venga mañana."},
+  {es:"tal vez",zh:"或许",en:"maybe",cat:"连接词",ex:"Tal vez tengas razón."},
+  {es:"claro",zh:"当然",en:"of course",cat:"连接词",ex:"¡Claro que sí!"},
+  {es:"por supuesto",zh:"当然了",en:"of course",cat:"连接词",ex:"Por supuesto, pasa."},
+  {es:"en realidad",zh:"实际上",en:"actually",cat:"连接词",ex:"En realidad es fácil."},
+  {es:"al menos",zh:"至少",en:"at least",cat:"连接词",ex:"Al menos lo intenté."},
+  {es:"casi",zh:"几乎",en:"almost",cat:"连接词",ex:"Casi termino."},
+  {es:"demasiado",zh:"太/过多",en:"too much",cat:"连接词",ex:"Es demasiado caro."},
+  {es:"bastante",zh:"相当/足够",en:"quite/enough",cat:"连接词",ex:"Es bastante bueno."},
+  {es:"suficiente",zh:"足够的",en:"enough",cat:"连接词",ex:"Tengo suficiente tiempo."},
+  {es:"alguien",zh:"某人",en:"someone",cat:"连接词",ex:"¿Hay alguien ahí?"},
+  {es:"nadie",zh:"没有人",en:"nobody",cat:"连接词",ex:"Nadie lo sabe."},
+  {es:"algo",zh:"某事/一点",en:"something",cat:"连接词",ex:"Quiero comer algo."},
+  {es:"siempre",zh:"总是",en:"always",cat:"连接词",ex:"Siempre te ayudaré."},
+  {es:"juntos",zh:"一起",en:"together",cat:"连接词",ex:"Vamos juntos."},
+  {es:"solo",zh:"独自/仅仅",en:"alone/only",cat:"连接词",ex:"Solo quiero un café."},
+  {es:"verdad",zh:"真相/对吧",en:"truth/right?",cat:"连接词",ex:"Es verdad, ¿verdad?"},
+  {es:"mentira",zh:"谎言",en:"lie",cat:"连接词",ex:"Eso es mentira."},
+  {es:"razón",zh:"理由/道理",en:"reason/right",cat:"连接词",ex:"Tienes razón."},
+  {es:"suerte",zh:"运气",en:"luck",cat:"连接词",ex:"¡Buena suerte!"},
+  {es:"cultura",zh:"文化",en:"culture",cat:"连接词",ex:"La cultura española."},
+  {es:"idioma",zh:"语言",en:"language",cat:"连接词",ex:"Hablo tres idiomas."},
+  {es:"palabra",zh:"单词/话",en:"word",cat:"连接词",ex:"Una palabra nueva."},
+  {es:"frase",zh:"句子/短语",en:"sentence/phrase",cat:"连接词",ex:"Repite esta frase."},
+  {es:"historia",zh:"历史/故事",en:"history/story",cat:"连接词",ex:"Una buena historia."},
+  {es:"opinión",zh:"看法/意见",en:"opinion",cat:"连接词",ex:"En mi opinión..."},
+  {es:"consejo",zh:"建议",en:"advice",cat:"连接词",ex:"Dame un consejo."},
+  {es:"ayuda",zh:"帮助",en:"help",cat:"连接词",ex:"¡Necesito ayuda!"},
+  {es:"película",zh:"电影",en:"movie",cat:"连接词",ex:"Vemos una película."},
+  {es:"canción",zh:"歌曲",en:"song",cat:"连接词",ex:"Mi canción favorita."},
+  {es:"fiesta",zh:"派对/节日",en:"party/holiday",cat:"连接词",ex:"Vamos a la fiesta."},
+  {es:"cumpleaños",zh:"生日",en:"birthday",cat:"连接词",ex:"¡Feliz cumpleaños!"},
+  {es:"navidad",zh:"圣诞节",en:"Christmas",cat:"连接词",ex:"¡Feliz Navidad!"},
+  {es:"vacaciones",zh:"假期",en:"vacation",cat:"连接词",ex:"Estoy de vacaciones."},
+  {es:"sueño",zh:"梦想/困意",en:"dream/sleepy",cat:"连接词",ex:"Tengo mucho sueño."},
+  {es:"hambre",zh:"饥饿",en:"hunger",cat:"连接词",ex:"Tengo hambre."},
+  {es:"sed",zh:"口渴",en:"thirst",cat:"连接词",ex:"Tengo mucha sed."},
+  {es:"calor",zh:"热",en:"heat",cat:"连接词",ex:"Hace mucho calor."},
+  {es:"frío",zh:"冷",en:"cold",cat:"连接词",ex:"Tengo frío."},
+  {es:"prisa",zh:"赶时间",en:"hurry",cat:"连接词",ex:"Tengo prisa."},
+  {es:"cuidado",zh:"小心",en:"careful",cat:"连接词",ex:"¡Ten cuidado!"},
+  // === 补充高频日常与社交词汇 ===
+  {es:"vecino",zh:"邻居",en:"neighbor",cat:"家庭",ex:"Mi vecino es simpático."},
+  {es:"novio",zh:"男朋友",en:"boyfriend",cat:"家庭",ex:"Es mi novio."},
+  {es:"novia",zh:"女朋友",en:"girlfriend",cat:"家庭",ex:"Salgo con mi novia."},
+  {es:"tío",zh:"叔叔/舅舅",en:"uncle",cat:"家庭",ex:"Mi tío vive en Sevilla."},
+  {es:"tía",zh:"阿姨/姑姑",en:"aunt",cat:"家庭",ex:"Mi tía cocina rico."},
+  {es:"primo",zh:"堂/表兄弟",en:"cousin",cat:"家庭",ex:"Juega con tu primo."},
+  {es:"pareja",zh:"伴侣/一对",en:"partner/couple",cat:"家庭",ex:"Una pareja feliz."},
+  {es:"gente",zh:"人们",en:"people",cat:"其他",ex:"Hay mucha gente aquí."},
+  {es:"grupo",zh:"小组/群体",en:"group",cat:"其他",ex:"Un grupo de amigos."},
+  {es:"forma",zh:"方式/形状",en:"way/shape",cat:"其他",ex:"De esta forma."},
+  {es:"manera",zh:"方式",en:"manner/way",cat:"其他",ex:"De ninguna manera."},
+  {es:"tipo",zh:"类型/家伙",en:"type/guy",cat:"其他",ex:"¿Qué tipo de música?"},
+  {es:"caso",zh:"情况/案例",en:"case",cat:"其他",ex:"En ese caso, vamos."},
+  {es:"momento",zh:"时刻/片刻",en:"moment",cat:"时间",ex:"Un momento, por favor."},
+  {es:"vez",zh:"次/回",en:"time (occurrence)",cat:"时间",ex:"Otra vez, por favor."},
+  {es:"principio",zh:"开始/原则",en:"beginning/principle",cat:"时间",ex:"Al principio fue difícil."},
+  {es:"final",zh:"结尾/最后",en:"end/final",cat:"时间",ex:"Al final todo salió bien."},
+  {es:"futuro",zh:"未来",en:"future",cat:"时间",ex:"En el futuro cercano."},
+  {es:"pasado",zh:"过去",en:"past",cat:"时间",ex:"Olvida el pasado."},
+  {es:"presente",zh:"现在/礼物",en:"present",cat:"时间",ex:"Vive el presente."},
+  {es:"mente",zh:"头脑/心智",en:"mind",cat:"身体",ex:"Abre tu mente."},
+  {es:"cuerpo",zh:"身体",en:"body",cat:"身体",ex:"Cuida tu cuerpo."},
+  {es:"cara",zh:"脸",en:"face",cat:"身体",ex:"Lávate la cara."},
+  {es:"cuello",zh:"脖子",en:"neck",cat:"身体",ex:"Me duele el cuello."},
+  {es:"hombro",zh:"肩膀",en:"shoulder",cat:"身体",ex:"Toca mi hombro."},
+  {es:"rodilla",zh:"膝盖",en:"knee",cat:"身体",ex:"Me duele la rodilla."},
+  {es:"piel",zh:"皮肤",en:"skin",cat:"身体",ex:"Protege tu piel del sol."},
+  {es:"voz",zh:"声音",en:"voice",cat:"身体",ex:"Tiene una voz bonita."},
+  {es:"sonido",zh:"声音/声响",en:"sound",cat:"自然",ex:"Escucho un sonido raro."},
+  {es:"luz",zh:"光/电灯",en:"light",cat:"日常",ex:"Enciende la luz."},
+  {es:"sombra",zh:"影子/阴凉",en:"shadow/shade",cat:"自然",ex:"Descansa a la sombra."},
+  {es:"fuego",zh:"火",en:"fire",cat:"自然",ex:"Cuidado con el fuego."},
+  {es:"aire",zh:"空气",en:"air",cat:"自然",ex:"Respira aire puro."},
+  {es:"bosque",zh:"森林",en:"forest",cat:"自然",ex:"Caminamos por el bosque."},
+  {es:"lago",zh:"湖",en:"lake",cat:"自然",ex:"Un lago tranquilo."},
+  {es:"isla",zh:"岛屿",en:"island",cat:"自然",ex:"Una isla tropical."},
+  {es:"desierto",zh:"沙漠",en:"desert",cat:"自然",ex:"El desierto es seco."},
+  {es:"campo",zh:"乡下/田野",en:"countryside/field",cat:"自然",ex:"Me gusta el campo."},
+  {es:"jardín",zh:"花园",en:"garden",cat:"自然",ex:"Flores en el jardín."},
+  {es:"hoja",zh:"树叶/纸张",en:"leaf/sheet",cat:"自然",ex:"Una hoja de papel."},
+  {es:"piedra",zh:"石头",en:"stone",cat:"自然",ex:"Una piedra grande."},
+  {es:"arena",zh:"沙子",en:"sand",cat:"自然",ex:"Arena blanca en la playa."},
+  {es:"nube",zh:"云",en:"cloud",cat:"自然",ex:"Hay muchas nubes."},
+  {es:"tormenta",zh:"暴风雨",en:"storm",cat:"自然",ex:"Viene una tormenta."},
+  {es:"espejo",zh:"镜子",en:"mirror",cat:"日常",ex:"Mírate en el espejo."},
+  {es:"toalla",zh:"毛巾",en:"towel",cat:"日常",ex:"Necesito una toalla limpia."},
+  {es:"jabón",zh:"肥皂",en:"soap",cat:"日常",ex:"Lava con jabón."},
+  {es:"cepillo",zh:"刷子/牙刷",en:"brush",cat:"日常",ex:"Cepillo de dientes."},
+  {es:"paraguas",zh:"雨伞",en:"umbrella",cat:"日常",ex:"Lleva el paraguas."},
+  {es:"mochila",zh:"双肩包",en:"backpack",cat:"日常",ex:"Mi mochila pesa mucho."},
+  {es:"cuaderno",zh:"笔记本",en:"notebook",cat:"日常",ex:"Apunta en tu cuaderno."},
+  {es:"bolígrafo",zh:"圆珠笔",en:"pen",cat:"日常",ex:"¿Me prestas un bolígrafo?"},
+  {es:"lápiz",zh:"铅笔",en:"pencil",cat:"日常",ex:"Dibuja con lápiz."},
+  {es:"papel",zh:"纸/角色",en:"paper/role",cat:"日常",ex:"Un trozo de papel."},
+  {es:"carta",zh:"信/菜单",en:"letter/menu",cat:"日常",ex:"Escribo una carta."},
+  {es:"periódico",zh:"报纸",en:"newspaper",cat:"日常",ex:"Leo el periódico."},
+  {es:"revista",zh:"杂志",en:"magazine",cat:"日常",ex:"Una revista interesante."},
+  {es:"televisión",zh:"电视",en:"television",cat:"日常",ex:"Veo la televisión."},
+  {es:"radio",zh:"收音机",en:"radio",cat:"日常",ex:"Escucho la radio."},
+  {es:"sofá",zh:"沙发",en:"sofa",cat:"日常",ex:"Descansa en el sofá."},
+  {es:"nevera",zh:"冰箱",en:"fridge",cat:"日常",ex:"Está en la nevera."},
+  {es:"horno",zh:"烤箱",en:"oven",cat:"日常",ex:"Hornea en el horno."},
+  {es:"basura",zh:"垃圾",en:"trash",cat:"日常",ex:"Saca la basura."},
+  {es:"escalera",zh:"楼梯",en:"stairs",cat:"日常",ex:"Sube la escalera."},
+  {es:"ascensor",zh:"电梯",en:"elevator",cat:"日常",ex:"Toma el ascensor."},
+  {es:"techo",zh:"屋顶/天花板",en:"roof/ceiling",cat:"日常",ex:"El techo es alto."},
+  {es:"suelo",zh:"地面/地板",en:"floor/ground",cat:"日常",ex:"Cayó al suelo."},
+  {es:"pared",zh:"墙壁",en:"wall",cat:"日常",ex:"Una pared blanca."},
 ];
 
-// Common sentences for practice
+// Common sentences for practice (categorized)
 const SENTENCES = [
-  {es:"¿Cómo estás hoy?",zh:"你今天好吗？"},
-  {es:"Me llamo María. ¿Y tú?",zh:"我叫玛丽亚。你呢？"},
-  {es:"¿Dónde está el baño?",zh:"卫生间在哪里？"},
-  {es:"Quiero un café con leche, por favor.",zh:"我想要一杯拿铁咖啡，谢谢。"},
-  {es:"¿Cuánto cuesta esto?",zh:"这个多少钱？"},
-  {es:"No entiendo. ¿Puede repetir?",zh:"我不明白。可以重复一下吗？"},
-  {es:"¿Hablas inglés?",zh:"你说英语吗？"},
-  {es:"Estoy aprendiendo español.",zh:"我正在学西班牙语。"},
-  {es:"Me gusta mucho la comida española.",zh:"我非常喜欢西班牙菜。"},
-  {es:"¿Qué hora es?",zh:"现在几点了？"},
-  {es:"Tengo hambre. ¿Dónde podemos comer?",zh:"我饿了。我们可以在哪里吃饭？"},
-  {es:"El hotel está cerca de aquí.",zh:"酒店在这附近。"},
-  {es:"Necesito un taxi al aeropuerto.",zh:"我需要一辆去机场的出租车。"},
-  {es:"¿Puedes ayudarme?",zh:"你能帮我吗？"},
-  {es:"Hoy hace buen tiempo.",zh:"今天天气很好。"},
-  {es:"Mañana vamos a la playa.",zh:"明天我们去海滩。"},
-  {es:"Tengo dos hermanos y una hermana.",zh:"我有两个兄弟和一个姐妹。"},
-  {es:"¿Dónde vives?",zh:"你住在哪里？"},
-  {es:"Trabajo en una oficina.",zh:"我在办公室工作。"},
-  {es:"Me encanta viajar por el mundo.",zh:"我喜欢环游世界。"},
-  {es:"La vida es corta, hay que disfrutarla.",zh:"人生苦短，要好好享受。"},
-  {es:"¿Puedo ver el menú?",zh:"我可以看看菜单吗？"},
-  {es:"La cuenta, por favor.",zh:"请买单。"},
-  {es:"Estoy muy cansado hoy.",zh:"我今天很累。"},
-  {es:"¿Qué vas a hacer este fin de semana?",zh:"你这个周末打算做什么？"},
-  {es:"Llueve mucho en esta ciudad.",zh:"这个城市经常下雨。"},
-  {es:"Mi color favorito es el azul.",zh:"我最喜欢的颜色是蓝色。"},
-  {es:"Estudio español todos los días.",zh:"我每天学西班牙语。"},
-  {es:"¿Puedes hablar más lento?",zh:"你可以说慢一点吗？"},
-  {es:"Mucho gusto en conocerte.",zh:"很高兴认识你。"},
+  // 日常寒暄
+  {cat:"日常寒暄",es:"¡Hola! ¿Cómo estás hoy?",zh:"你好！你今天好吗？"},
+  {cat:"日常寒暄",es:"Muy bien, gracias. ¿Y tú?",zh:"很好，谢谢。你呢？"},
+  {cat:"日常寒暄",es:"Me llamo Carlos. Mucho gusto en conocerte.",zh:"我叫卡洛斯。很高兴认识你。"},
+  {cat:"日常寒暄",es:"¿De dónde eres?",zh:"你从哪里来？"},
+  {cat:"日常寒暄",es:"Soy de China, pero vivo aquí ahora.",zh:"我来自中国，但现在住在这里。"},
+  {cat:"日常寒暄",es:"¿Hablas inglés o un poco de español?",zh:"你说英语还是会一点西班牙语？"},
+  {cat:"日常寒暄",es:"Estoy aprendiendo español todos los días.",zh:"我每天都在学西班牙语。"},
+  {cat:"日常寒暄",es:"Perdón, ¿puedes hablar más lento, por favor?",zh:"抱歉，你可以说慢一点吗？"},
+  {cat:"日常寒暄",es:"No entiendo. ¿Puede repetir eso?",zh:"我不明白。可以重复一遍吗？"},
+  {cat:"日常寒暄",es:"¡Que tengas un buen día!",zh:"祝你今天愉快！"},
+  {cat:"日常寒暄",es:"Hasta luego, nos vemos mañana.",zh:"回头见，明天见。"},
+  {cat:"日常寒暄",es:"Disculpa la molestia.",zh:"不好意思打扰了。"},
+  // 点餐购物
+  {cat:"点餐购物",es:"Una mesa para dos personas, por favor.",zh:"请给我们一张两人桌。"},
+  {cat:"点餐购物",es:"¿Puedo ver el menú, por favor?",zh:"我可以看看菜单吗？"},
+  {cat:"点餐购物",es:"Quiero un café con leche y un pan.",zh:"我想要一杯拿铁咖啡和一个面包。"},
+  {cat:"点餐购物",es:"¿Qué nos recomienda hoy?",zh:"您今天推荐什么菜？"},
+  {cat:"点餐购物",es:"Sin cebolla y no muy picante, por favor.",zh:"请不要放洋葱，也不要太辣。"},
+  {cat:"点餐购物",es:"La comida está deliciosa.",zh:"这顿饭太美味了。"},
+  {cat:"点餐购物",es:"La cuenta, por favor. ¿Aceptan tarjeta?",zh:"请买单。你们收银行卡吗？"},
+  {cat:"点餐购物",es:"¿Cuánto cuesta esto?",zh:"这个多少钱？"},
+  {cat:"点餐购物",es:"¿Tiene una talla más grande?",zh:"有大一号的尺码吗？"},
+  {cat:"点餐购物",es:"Es un poco caro, ¿hay algún descuento?",zh:"有点贵，有折扣吗？"},
+  {cat:"点餐购物",es:"Solo estoy mirando, gracias.",zh:"我只是看看，谢谢。"},
+  {cat:"点餐购物",es:"Me llevo esto. Pago en efectivo.",zh:"我买这个了。我付现金。"},
+  // 出行问路
+  {cat:"出行问路",es:"Disculpe, ¿dónde está el baño?",zh:"打扰一下，卫生间在哪里？"},
+  {cat:"出行问路",es:"¿Dónde está la estación de metro más cercana?",zh:"最近的地铁站在哪里？"},
+  {cat:"出行问路",es:"Sigue todo recto y gira a la derecha.",zh:"一直往前走，然后向右转。"},
+  {cat:"出行问路",es:"Está a cinco minutos a pie.",zh:"步行五分钟就到。"},
+  {cat:"出行问路",es:"Necesito un taxi al aeropuerto.",zh:"我需要一辆去机场的出租车。"},
+  {cat:"出行问路",es:"¿A qué hora sale el próximo tren?",zh:"下一班火车几点开？"},
+  {cat:"出行问路",es:"Un billete de ida y vuelta, por favor.",zh:"请给我一张往返票。"},
+  {cat:"出行问路",es:"Tengo una reserva a nombre de Lin.",zh:"我有一个林先生/女士名下的预订。"},
+  {cat:"出行问路",es:"¿Cuál es la contraseña del wifi?",zh:"WiFi 密码是多少？"},
+  {cat:"出行问路",es:"El hotel está muy cerca de la playa.",zh:"酒店离海滩很近。"},
+  {cat:"出行问路",es:"Me he perdido. ¿Puede mostrarme en el mapa?",zh:"我迷路了。能在地图上指给我看吗？"},
+  // 工作学习
+  {cat:"工作学习",es:"Trabajo en una empresa de tecnología.",zh:"我在一家科技公司工作。"},
+  {cat:"工作学习",es:"Tengo una reunión importante a las diez.",zh:"我十点有个重要会议。"},
+  {cat:"工作学习",es:"Te envío el documento por correo electrónico.",zh:"我通过电子邮件把文档发给你。"},
+  {cat:"工作学习",es:"¿Puedes revisar este archivo antes de las cinco?",zh:"你能在五点前检查一下这个文件吗？"},
+  {cat:"工作学习",es:"Estoy trabajando en un proyecto nuevo.",zh:"我正在做一个新项目。"},
+  {cat:"工作学习",es:"¿Cómo se dice esta palabra en español?",zh:"这个词用西班牙语怎么说？"},
+  {cat:"工作学习",es:"¿Qué significa esta frase?",zh:"这句话是什么意思？"},
+  {cat:"工作学习",es:"Necesito practicar más mi pronunciación.",zh:"我需要多练习我的发音。"},
+  {cat:"工作学习",es:"Hoy aprendí veinticinco palabras nuevas.",zh:"我今天学了二十五个新单词。"},
+  {cat:"工作学习",es:"El sistema no funciona bien hoy.",zh:"今天系统不太好用。"},
+  // 表达观点
+  {cat:"表达观点",es:"En mi opinión, es una excelente idea.",zh:"在我看来，这是个极好的主意。"},
+  {cat:"表达观点",es:"Estoy de acuerdo contigo.",zh:"我同意你的看法。"},
+  {cat:"表达观点",es:"Tienes razón, vamos a intentarlo.",zh:"你说得对，我们试试看。"},
+  {cat:"表达观点",es:"Me parece muy interesante.",zh:"我觉得非常有趣。"},
+  {cat:"表达观点",es:"Prefiero quedarme en casa este fin de semana.",zh:"这个周末我更想待在家里。"},
+  {cat:"表达观点",es:"Depende del tiempo que haga mañana.",zh:"这取决于明天的天气。"},
+  {cat:"表达观点",es:"No estoy seguro, tengo que pensarlo.",zh:"我不太确定，我得想想。"},
+  {cat:"表达观点",es:"¡Qué buena suerte tienes!",zh:"你运气真好！"},
+  {cat:"表达观点",es:"No pasa nada, no te preocupes.",zh:"没事的，别担心。"},
+  {cat:"表达观点",es:"Vale la pena visitar esta ciudad.",zh:"这座城市值得一游。"},
+  // 紧急求助
+  {cat:"紧急求助",es:"¡Ayuda, por favor! Es una emergencia.",zh:"请帮帮我！这是紧急情况。"},
+  {cat:"紧急求助",es:"¿Puede llamar a una ambulancia?",zh:"您能帮忙叫一辆救护车吗？"},
+  {cat:"紧急求助",es:"Necesito ir al hospital.",zh:"我需要去医院。"},
+  {cat:"紧急求助",es:"Me duele mucho la cabeza y tengo fiebre.",zh:"我头很痛，而且发烧了。"},
+  {cat:"紧急求助",es:"Perdí mi pasaporte y mi teléfono.",zh:"我丢了护照和手机。"},
+  {cat:"紧急求助",es:"¿Dónde está la farmacia más cercana?",zh:"最近的药房在哪里？"},
+  {cat:"紧急求助",es:"Mi batería se acabó. ¿Tiene un cargador?",zh:"我手机没电了。您有充电器吗？"},
 ];
 
 // ===== APP STATE =====
@@ -1043,7 +1537,7 @@ const WORD_VISUALS = {
   "doctor":"👨‍⚕️","profesor":"👨‍🏫","estudiante":"🎓","policía":"👮","abogado":"⚖️","ingeniero":"👷","cocinero":"👨‍🍳","músico":"🎵",
   "sol":"☀️","luna":"🌙","estrella":"⭐","cielo":"☁️","mar":"🌊","río":"🏞️","lluvia":"🌧️","nieve":"❄️","viento":"💨","flor":"🌺","árbol":"🌲","tierra":"🌍"
 };
-const CAT_ICONS = {'问候':'👋','数字':'🔢','颜色':'🎨','食物':'🍽️','家庭':'👨‍👩‍👧‍👦','身体':'🦴','时间':'⏰','动物':'🐾','动词':'⚡','形容词':'📐','旅行':'✈️','日常':'🏠','地点':'📍','情感':'❤️','职业':'💼','自然':'🌿','其他':'📦'};
+const CAT_ICONS = {'问候':'👋','数字':'🔢','颜色':'🎨','食物':'🍽️','家庭':'👨‍👩‍👧‍👦','身体':'🦴','时间':'⏰','动物':'🐾','动词':'⚡','形容词':'📐','旅行':'✈️','日常':'🏠','地点':'📍','情感':'❤️','职业':'💼','自然':'🌿','办公科技':'💻','购物金钱':'💳','健康':'🩺','连接词':'🔗','其他':'📦'};
 
 function getWordVisual(w) {
   return WORD_VISUALS[w.es] || CAT_ICONS[w.cat] || '📖';
@@ -1068,7 +1562,7 @@ function switchSection(name) {
   document.querySelector(`#nav button[data-section="${name}"]`)?.classList.add('active');
   document.querySelectorAll('#mobileNav button').forEach(b => b.classList.toggle('active', b.dataset.section === name));
   
-  const titles = {dashboard:'仪表盘',learn:'学习新词',review:'间隔复习',listening:'听力练习',speaking:'口语练习',sentences:'句子练习',wordbank:'词库',settings:'设置'};
+  const titles = {dashboard:'仪表盘',learn:'学习新词',review:'间隔复习',listening:'听力练习',speaking:'口语练习',sentences:'句子练习',grammar:'语法课堂',wordbank:'词库',settings:'设置'};
   document.getElementById('pageTitle').textContent = titles[name] || '';
   
   document.querySelector('.sidebar').classList.remove('open');
@@ -1077,7 +1571,8 @@ function switchSection(name) {
   else if (name === 'review') startReview();
   else if (name === 'listening') startListening();
   else if (name === 'speaking') startSpeaking();
-  else if (name === 'sentences') showSentence();
+  else if (name === 'sentences') initSentences();
+  else if (name === 'grammar') initGrammar();
   else if (name === 'wordbank') renderWordBank();
   else if (name === 'dashboard') { updateDashboard(); renderLessons(); }
 }
@@ -1149,14 +1644,13 @@ function updateBadges() {
 // ===== LESSONS =====
 function renderLessons() {
   const categories = [...new Set(VOCAB.map(w => w.cat))];
-  const catIcons = {'问候':'👋','数字':'🔢','颜色':'🎨','食物':'🍽️','家庭':'👨‍👩‍👧‍👦','身体':'🦴','时间':'⏰','动物':'🐾','动词':'⚡','形容词':'📐','旅行':'✈️','日常':'🏠','地点':'📍','情感':'❤️','职业':'💼','自然':'🌿','其他':'📦'};
   const grid = document.getElementById('lessonGrid');
   grid.innerHTML = categories.map(cat => {
     const words = VOCAB.filter(w => w.cat === cat);
     const learned = words.filter(w => state.words[w.es] && state.words[w.es].status !== 'new').length;
     const pct = Math.round(learned / words.length * 100);
     return `<div class="lesson-card" onclick="startLessonCategory('${cat}')">
-      <div class="lesson-icon">${catIcons[cat]||'📖'}</div>
+      <div class="lesson-icon">${CAT_ICONS[cat]||'📖'}</div>
       <div class="lesson-name">${cat}</div>
       <div class="lesson-count">${words.length} 词 · 已学 ${learned}</div>
       <div class="lesson-progress"><div class="progress-bar" style="height:6px"><div class="progress-fill" style="width:${pct}%"></div></div></div>
@@ -1250,8 +1744,13 @@ function showStudyCard() {
   const cog = getCognateHint(w);
   document.getElementById('learnCognateWrap').innerHTML = cog ? `<span class="cognate-tag">${cog}</span>` : '';
   document.getElementById('learnExample').textContent = w.ex || '';
+  document.getElementById('learnExampleZH').textContent = w.exZh || '';
   document.getElementById('learnCounter').textContent = `学习 ${learnIdx + 1} / ${learnQueue.length} (本组 ${learnBatch.length + 1}/${BATCH_SIZE})`;
   speak(w.es);
+}
+
+function speakExample() {
+  if (currentWord && currentWord.ex) speak(currentWord.ex);
 }
 
 function nextStudyWord() {
@@ -1309,7 +1808,6 @@ function showLearnQuiz() {
   const w = learnQuizQueue[0];
   learnQuizCurrent = w;
   currentWord = w;
-  document.getElementById('learnQuizWord').textContent = w.es;
   document.getElementById('learnQuizFeedback').innerHTML = '';
   document.getElementById('learnQuizHintBtn').style.display = 'inline-flex';
   document.getElementById('learnQuizNextBtn').style.display = 'none';
@@ -1321,14 +1819,35 @@ function showLearnQuiz() {
   options.push(...others.slice(0, 3));
   shuffleArray(options);
 
-  document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
-    `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,'${escapeHtml(o.es)}')">
-      <span class="opt-emoji">${getWordVisual(o)}</span>
-      <span>${o.zh}</span>
-      <small style="color:var(--text3);font-weight:400">${o.en}</small>
-    </button>`
-  ).join('');
-  speak(w.es);
+  // Alternate between Meaning Quiz and Cloze Sentence Quiz (if word appears in its example)
+  const escapedEs = w.es.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const wordRe = new RegExp(`(^|[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ])${escapedEs}([^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]|$)`, 'i');
+  const canCloze = w.ex && !w.es.includes(' ') && wordRe.test(w.ex) && Math.random() > 0.45;
+
+  if (canCloze) {
+    const masked = w.ex.replace(wordRe, '$1<span class="cloze-blank">_____</span>$2');
+    document.getElementById('learnQuizPrompt').textContent = `例句填空：选出最适合填入空白处的词（意思：${w.zh}）`;
+    document.getElementById('learnQuizWord').innerHTML = `<div class="cloze-sentence">${masked}</div>`;
+    document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
+      `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,'${escapeHtml(o.es)}')">
+        <span class="opt-emoji">${getWordVisual(o)}</span>
+        <span style="font-size:17px;color:var(--primary)">${o.es}</span>
+        <small style="color:var(--text3);font-weight:400">${o.zh}</small>
+      </button>`
+    ).join('');
+    speak(w.ex);
+  } else {
+    document.getElementById('learnQuizPrompt').textContent = '还记得这个词的意思吗？选出正确答案';
+    document.getElementById('learnQuizWord').textContent = w.es;
+    document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
+      `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,'${escapeHtml(o.es)}')">
+        <span class="opt-emoji">${getWordVisual(o)}</span>
+        <span>${o.zh}</span>
+        <small style="color:var(--text3);font-weight:400">${o.en}</small>
+      </button>`
+    ).join('');
+    speak(w.es);
+  }
 }
 
 function answerLearnQuiz(btn, chosenEs) {
@@ -1739,16 +2258,35 @@ function nextSpeakWord() {
   showSpeakWord();
 }
 
-// ===== SENTENCES =====
+// ===== SENTENCES (CATEGORIZED) =====
+let sentenceCat = '全部';
+let filteredSentences = SENTENCES;
+
+function initSentences() {
+  const cats = ['全部', ...new Set(SENTENCES.map(s => s.cat))];
+  document.getElementById('sentenceCatTabs').innerHTML = cats.map(c =>
+    `<button class="grammar-tab ${c===sentenceCat?'active':''}" onclick="setSentenceCat('${c}')">${c}</button>`
+  ).join('');
+  filteredSentences = sentenceCat === '全部' ? SENTENCES : SENTENCES.filter(s => s.cat === sentenceCat);
+  sentenceIdx = 0;
+  showSentence();
+}
+
+function setSentenceCat(cat) {
+  sentenceCat = cat;
+  initSentences();
+}
+
 function showSentence() {
-  if (sentenceIdx >= SENTENCES.length) sentenceIdx = 0;
-  const s = SENTENCES[sentenceIdx];
+  if (!filteredSentences.length) filteredSentences = SENTENCES;
+  if (sentenceIdx >= filteredSentences.length) sentenceIdx = 0;
+  const s = filteredSentences[sentenceIdx];
   document.getElementById('sentenceES').textContent = s.es;
   document.getElementById('sentenceZH').textContent = s.zh;
   document.getElementById('sentenceZH').style.visibility = 'hidden';
   document.getElementById('sentenceSpeechResult').textContent = '';
   document.getElementById('sentenceFeedback').innerHTML = '';
-  document.getElementById('sentenceCounter').textContent = `${sentenceIdx + 1} / ${SENTENCES.length}`;
+  document.getElementById('sentenceCounter').textContent = `${sentenceIdx + 1} / ${filteredSentences.length}`;
 }
 
 function nextSentence() {
@@ -1757,8 +2295,8 @@ function nextSentence() {
 }
 
 function speakSentence() {
-  const s = SENTENCES[sentenceIdx];
-  speak(s.es);
+  const s = filteredSentences[sentenceIdx];
+  if (s) speak(s.es);
 }
 
 function toggleSentenceMic() {
@@ -1771,7 +2309,7 @@ function toggleSentenceMic() {
 
 function handleSentenceResult(result) {
   document.getElementById('sentenceSpeechResult').textContent = '你说的: "' + result + '"';
-  const target = SENTENCES[sentenceIdx].es.toLowerCase().replace(/[¿?¡!.,]/g, '').trim();
+  const target = filteredSentences[sentenceIdx].es.toLowerCase().replace(/[¿?¡!.,]/g, '').trim();
   const spoken = result.replace(/[¿?¡!.,]/g, '').trim();
   
   const fb = document.getElementById('sentenceFeedback');
@@ -1780,6 +2318,132 @@ function handleSentenceResult(result) {
     fb.innerHTML = `<div class="speech-feedback match">✅ 很好！相似度 ${Math.round(similarity*100)}%</div>`;
   } else {
     fb.innerHTML = `<div class="speech-feedback no-match">再试试，相似度 ${Math.round(similarity*100)}%</div>`;
+  }
+}
+
+// ===== GRAMMAR LESSONS =====
+const GRAMMAR_LESSONS = [
+  {
+    title: "1. 阴阳性与冠词",
+    html: `<div class="grammar-box">
+      <h4>核心规则（英语没有，但西语超规律）</h4>
+      <p>西班牙语所有名词都有“性别”：通常以 <strong>-o</strong> 结尾是阳性（用 <code>el / un</code>），以 <strong>-a</strong> 结尾是阴性（用 <code>la / una</code>）。复数加 <strong>-s / -es</strong>，冠词变成 <code>los / las</code>。</p>
+      <table class="grammar-table">
+        <tr><th>性别/数</th><th>定冠词 (the)</th><th>不定冠词 (a/an)</th><th>例子</th></tr>
+        <tr><td>阳性单数</td><td>el</td><td>un</td><td>el libro / un perro</td></tr>
+        <tr><td>阴性单数</td><td>la</td><td>una</td><td>la casa / una manzana</td></tr>
+        <tr><td>阳性复数</td><td>los</td><td>unos</td><td>los libros / los gatos</td></tr>
+        <tr><td>阴性复数</td><td>las</td><td>unas</td><td>las casas / las flores</td></tr>
+      </table>
+      <div class="grammar-ex"><span><strong>El gato</strong> está en <strong>la casa</strong>.（那只猫在房子里。）</span><button class="btn btn-outline btn-sm" onclick="speak('El gato está en la casa.')">🔊</button></div>
+    </div>`,
+    quiz: { q: "“那杯咖啡”（café 为阳性单数）应该怎么说？", opts: ["la café","el café","las café","los café"], ans: 1, exp: "café 是阳性单数名词，定冠词用 el。" }
+  },
+  {
+    title: "2. 动词现在时变位",
+    html: `<div class="grammar-box">
+      <h4>为什么西语经常省略“我/你/他”？</h4>
+      <p>因为动词词尾已经告诉你主语是谁了！规则动词按词尾 <strong>-ar / -er / -ir</strong> 变化：</p>
+      <table class="grammar-table">
+        <tr><th>主语</th><th>hablar (-ar 说)</th><th>comer (-er 吃)</th><th>vivir (-ir 住)</th></tr>
+        <tr><td>yo (我)</td><td>habl<strong>o</strong></td><td>com<strong>o</strong></td><td>viv<strong>o</strong></td></tr>
+        <tr><td>tú (你)</td><td>habl<strong>as</strong></td><td>com<strong>es</strong></td><td>viv<strong>es</strong></td></tr>
+        <tr><td>él/ella/usted (他/她/您)</td><td>habl<strong>a</strong></td><td>com<strong>e</strong></td><td>viv<strong>e</strong></td></tr>
+        <tr><td>nosotros (我们)</td><td>habl<strong>amos</strong></td><td>com<strong>emos</strong></td><td>viv<strong>imos</strong></td></tr>
+        <tr><td>ellos/ustedes (他们)</td><td>habl<strong>an</strong></td><td>com<strong>en</strong></td><td>viv<strong>en</strong></td></tr>
+      </table>
+      <div class="grammar-ex"><span><strong>Hablo</strong> español y <strong>vivo</strong> en China.（我说西语，住在中国。）</span><button class="btn btn-outline btn-sm" onclick="speak('Hablo español y vivo en China.')">🔊</button></div>
+    </div>`,
+    quiz: { q: "“我们吃米饭”（comer 的 nosotros 形式）是？", opts: ["como arroz","comes arroz","comemos arroz","comen arroz"], ans: 2, exp: "-er 动词的 nosotros（我们）词尾是 -emos → comemos。" }
+  },
+  {
+    title: "3. Ser vs. Estar (两个“是”)",
+    html: `<div class="grammar-box">
+      <h4>英语只有一个 be，西语分成两个！</h4>
+      <p>记住口诀：<strong>本质/职业/国籍用 Ser，状态/心情/位置用 Estar</strong>。</p>
+      <table class="grammar-table">
+        <tr><th>用法</th><th>Ser (soy, eres, es, somos, son)</th><th>Estar (estoy, estás, está, estamos, están)</th></tr>
+        <tr><td>核心含义</td><td>长期特征、身份、时间、产地</td><td>当前状态、情绪、地理位置</td></tr>
+        <tr><td>例句</td><td><strong>Soy</strong> estudiante.（我是学生）</td><td><strong>Estoy</strong> cansado.（我累了）</td></tr>
+        <tr><td>例句</td><td>Madrid <strong>es</strong> grande.（马德里很大）</td><td>Madrid <strong>está</strong> en España.（马德里在西班牙）</td></tr>
+      </table>
+      <div class="grammar-ex"><span><strong>Soy</strong> feliz, pero hoy <strong>estoy</strong> cansado.（我是个快乐的人，但今天累了。）</span><button class="btn btn-outline btn-sm" onclick="speak('Soy feliz, pero hoy estoy cansado.')">🔊</button></div>
+    </div>`,
+    quiz: { q: "“卫生间在哪里？”应该用哪个动词？", opts: ["¿Dónde es el baño?","¿Dónde está el baño?","¿Dónde soy el baño?","¿Dónde son el baño?"], ans: 1, exp: "询问地理位置一律用 estar → ¿Dónde está el baño?" }
+  },
+  {
+    title: "4. Gustar（表达喜欢）",
+    html: `<div class="grammar-box">
+      <h4>别说 Yo gusto！字面意思是“某物使我愉悦”</h4>
+      <p>用 <strong>me / te / le / nos</strong> 放在前面。喜欢单数或动作（动词原形）用 <strong>gusta</strong>；喜欢复数用 <strong>gustan</strong>。</p>
+      <div class="grammar-ex"><span><strong>Me gusta</strong> el café.（我喜欢咖啡 — 咖啡使我喜欢）</span><button class="btn btn-outline btn-sm" onclick="speak('Me gusta el café.')">🔊</button></div>
+      <div class="grammar-ex"><span><strong>Me gustan</strong> los gatos.（我喜欢猫 — 复数用 gustan）</span><button class="btn btn-outline btn-sm" onclick="speak('Me gustan los gatos.')">🔊</button></div>
+      <div class="grammar-ex"><span>¿<strong>Te gusta</strong> viajar?（你喜欢旅行吗？）</span><button class="btn btn-outline btn-sm" onclick="speak('¿Te gusta viajar?')">🔊</button></div>
+    </div>`,
+    quiz: { q: "“我喜欢水果们（las frutas，复数）”怎么说？", opts: ["Me gusta las frutas","Me gustan las frutas","Yo gusto las frutas","Te gusta las frutas"], ans: 1, exp: "主语 las frutas 是复数，所以用 Me gustan。" }
+  },
+  {
+    title: "5. 一秒变将来时 (Ir + a + 原形)",
+    html: `<div class="grammar-box">
+      <h4>相当于英语的 “be going to do”！</h4>
+      <p>只要记住 <strong>ir（去）</strong> 的变位：<code>voy / vas / va / vamos / van</code> + <strong>a</strong> + <strong>动词原形</strong>，就能表达将来计划！</p>
+      <div class="grammar-ex"><span><strong>Voy a</strong> estudiar español mañana.（我明天要学西语。）</span><button class="btn btn-outline btn-sm" onclick="speak('Voy a estudiar español mañana.')">🔊</button></div>
+      <div class="grammar-ex"><span><strong>Vamos a</strong> comer en un restaurante.（我们要去餐厅吃饭。）</span><button class="btn btn-outline btn-sm" onclick="speak('Vamos a comer en un restaurante.')">🔊</button></div>
+    </div>`,
+    quiz: { q: "“她今天要去买面包”怎么说？", opts: ["Ella va a comprar pan hoy","Ella voy a comprar pan hoy","Ella vas a comprar pan hoy","Ella van a comprar pan hoy"], ans: 0, exp: "第三人称单数 ella 用 va → Ella va a comprar pan hoy。" }
+  },
+  {
+    title: "6. 高频不规则动词",
+    html: `<div class="grammar-box">
+      <h4>掌握这 4 个词，日常对话覆盖一半！</h4>
+      <table class="grammar-table">
+        <tr><th>动词</th><th>yo (我)</th><th>tú (你)</th><th>él/ella (他/她)</th><th>例句</th></tr>
+        <tr><td><strong>tener</strong> (有)</td><td>tengo</td><td>tienes</td><td>tiene</td><td>Tengo hambre. (我饿了)</td></tr>
+        <tr><td><strong>hacer</strong> (做)</td><td>hago</td><td>haces</td><td>hace</td><td>¿Qué haces? (你在做什么)</td></tr>
+        <tr><td><strong>querer</strong> (想要)</td><td>quiero</td><td>quieres</td><td>quiere</td><td>Quiero agua. (我想要水)</td></tr>
+        <tr><td><strong>poder</strong> (能够)</td><td>puedo</td><td>puedes</td><td>puede</td><td>¿Puedes ayudarme? (能帮我吗)</td></tr>
+      </table>
+      <div class="grammar-ex"><span><strong>Quiero</strong> aprender, pero no <strong>tengo</strong> tiempo.（我想学，但我没时间。）</span><button class="btn btn-outline btn-sm" onclick="speak('Quiero aprender, pero no tengo tiempo.')">🔊</button></div>
+    </div>`,
+    quiz: { q: "“我想要一杯水”怎么说？", opts: ["Quero agua","Quiero agua","Tienes agua","Hago agua"], ans: 1, exp: "querer 的第一人称是 quiero → Quiero agua。" }
+  }
+];
+
+let grammarIdx = 0;
+
+function initGrammar() {
+  renderGrammar();
+}
+
+function renderGrammar() {
+  document.getElementById('grammarTabs').innerHTML = GRAMMAR_LESSONS.map((g, i) =>
+    `<button class="grammar-tab ${i===grammarIdx?'active':''}" onclick="selectGrammar(${i})">${g.title}</button>`
+  ).join('');
+  const g = GRAMMAR_LESSONS[grammarIdx];
+  document.getElementById('grammarContent').innerHTML = g.html;
+  document.getElementById('grammarQuizQ').textContent = g.quiz.q;
+  document.getElementById('grammarQuizFb').textContent = '';
+  document.getElementById('grammarQuizOpts').innerHTML = g.quiz.opts.map((opt, idx) =>
+    `<button class="quiz-opt" onclick="checkGrammarQuiz(this,${idx})">${opt}</button>`
+  ).join('');
+}
+
+function selectGrammar(i) {
+  grammarIdx = i;
+  renderGrammar();
+}
+
+function checkGrammarQuiz(btn, idx) {
+  const q = GRAMMAR_LESSONS[grammarIdx].quiz;
+  const btns = document.querySelectorAll('#grammarQuizOpts .quiz-opt');
+  btns.forEach(b => b.disabled = true);
+  if (idx === q.ans) {
+    btn.classList.add('correct');
+    document.getElementById('grammarQuizFb').innerHTML = `<span style="color:var(--success)">✅ 正确！${q.exp}</span>`;
+  } else {
+    btn.classList.add('wrong');
+    btns[q.ans]?.classList.add('correct');
+    document.getElementById('grammarQuizFb').innerHTML = `<span style="color:var(--danger)">❌ 再看看：${q.exp}</span>`;
   }
 }
 
