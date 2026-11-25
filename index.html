@@ -532,6 +532,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
           <div class="setting-control"><input type="range" min="0.5" max="1.5" step="0.1" value="0.9" id="settingSpeechRate" oninput="updateSpeechRate(this.value)"><span id="settingSpeechRateVal" style="margin-left:12px;font-weight:700;font-size:15px">0.9x</span></div>
         </div>
         <div class="setting-row">
+          <div class="setting-label"><h4>发音引擎</h4><p>手机端推荐“在线高清”，解决手机无西班牙语语音包的问题</p></div>
+          <div class="setting-control"><select id="settingTtsEngine" onchange="updateTtsEngine(this.value)"><option value="auto" selected>自动 (手机优先在线)</option><option value="online">在线高清 MP3</option><option value="local">浏览器本地引擎</option></select></div>
+        </div>
+        <div class="setting-row">
           <div class="setting-label"><h4>每轮听力题数</h4><p>每次听力练习的题目数量</p></div>
           <div class="setting-control"><select id="settingListenCount" onchange="updateListenCount(this.value)"><option value="10">10 题</option><option value="20" selected>20 题</option><option value="30">30 题</option><option value="50">50 题</option></select></div>
         </div>
@@ -1449,6 +1453,7 @@ let state = {
   dailyGoal: 25,
   speechRate: 0.9,
   listenCount: 20,
+  ttsEngine: 'auto',
   streak: 0,
   lastStudyDate: null,
   todayLearned: 0,
@@ -2539,16 +2544,43 @@ function createUtterance(text, onEnd) {
   return utter;
 }
 
-function speak(text, onEnd) {
-  if (typeof speechSynthesis === 'undefined') {
-    showToast('当前浏览器不支持语音，请用 Safari 或 Chrome 打开');
+const audioPlayer = typeof Audio !== 'undefined' ? new Audio() : null;
+
+function playOnlineAudio(text, onEnd) {
+  if (!audioPlayer) { if (onEnd) onEnd(); return false; }
+  try {
+    audioPlayer.pause();
+    audioPlayer.src = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&le=es';
+    audioPlayer.playbackRate = Math.max(0.5, Math.min(2.0, state.speechRate || 0.9));
+    audioPlayer.onended = () => { if (onEnd) onEnd(); };
+    audioPlayer.onerror = () => { if (onEnd) onEnd(); };
+    const p = audioPlayer.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => { if (onEnd) onEnd(); });
+    }
+    return true;
+  } catch (e) {
     if (onEnd) onEnd();
+    return false;
+  }
+}
+
+function speak(text, onEnd) {
+  if (typeof speechSynthesis !== 'undefined' && !cachedVoice) loadVoice();
+  const hasLocalEsVoice = !!cachedVoice;
+  const engine = state.ttsEngine || 'auto';
+  const useOnline = engine === 'online' || (engine === 'auto' && (isMobile || !hasLocalEsVoice));
+
+  if (useOnline) {
+    if (playOnlineAudio(text, onEnd)) return;
+  }
+
+  if (typeof speechSynthesis === 'undefined') {
+    playOnlineAudio(text, onEnd);
     return;
   }
-  if (!cachedVoice) loadVoice();
 
   if (isMobile) {
-    // Mobile browsers require synchronous speak() inside user gesture (no setTimeout, no pause/resume)
     if (speechSynthesis.speaking || speechSynthesis.pending) {
       speechSynthesis.cancel();
     }
@@ -2608,6 +2640,12 @@ function updateSpeechRate(val) {
 function updateListenCount(val) {
   state.listenCount = parseInt(val);
   saveState();
+}
+
+function updateTtsEngine(val) {
+  state.ttsEngine = val;
+  saveState();
+  showToast('发音引擎已切换');
 }
 
 function resetProgress() {
