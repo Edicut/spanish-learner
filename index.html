@@ -1637,7 +1637,7 @@ function getReviewDue() {
 function updateBadges() {
   const newWords = VOCAB.filter(w => !state.words[w.es] || state.words[w.es].status === 'new').length;
   const reviewDue = getReviewDue().length;
-  document.getElementById('newWordsBadge').textContent = Math.min(newWords, state.dailyGoal - state.todayLearned);
+  document.getElementById('newWordsBadge').textContent = Math.max(0, Math.min(newWords, state.dailyGoal - state.todayLearned));
   document.getElementById('reviewBadge').textContent = reviewDue;
 }
 
