@@ -1,0 +1,32 @@
+#sec-settings .card-header { margin-bottom: 8px; }
+#sec-settings .setting-row { gap: 16px; }
+#sec-settings label { font-size: 14px; font-weight: 600; }
+#sec-settings .setting-control, #sec-settings .settings-actions, #sec-settings .settings-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#sec-settings .setting-control output {
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+#sec-settings select, #sec-settings .btn { min-height: 44px; }
+#sec-settings input, #sec-settings select { color: var(--text); font-family: inherit; }
+#sec-settings .settings-note { color: var(--text2); font-size: 14px; line-height: 1.7; margin: 8px 0 16px; }
+#sec-settings .settings-actions { flex-wrap: wrap; }
+#sec-settings .settings-note a { color: var(--primary); text-underline-offset: 2px; }
+#sec-settings details > summary { cursor: pointer; font-weight: 700; font-size: 17px; }
+#sec-settings #syncFields { min-width: 0; display: grid; gap: 10px; border: 0; }
+#sec-settings #syncFields .search-box { width: 100%; min-width: 0; font-size: 16px; }
+#sec-settings #syncFields .sync-auto { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+#sec-settings #syncFields input[type=checkbox] { width: 19px; height: 19px; accent-color: var(--primary); }
+#sec-settings .settings-id .btn { flex-shrink: 0; }
+#sec-settings .reset-setting h3 { font-size: 16px; margin-bottom: 6px; }
+#sec-settings .reset-setting .btn { color: var(--danger); }
+#sec-settings [hidden] { display: none; }
+@media (max-width: 600px) {
+  #sec-settings .setting-row { flex-wrap: wrap; gap: 8px; }
+  #sec-settings .setting-control input[type=range] { width: clamp(80px, 21vw, 148px); height: 44px; }
+}
