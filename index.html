@@ -201,15 +201,23 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
-  .main{margin-left:0;padding-bottom:72px}
+  .main{margin-left:0;padding-bottom:68px}
   .menu-toggle{display:flex;align-items:center;justify-content:center}
   .mobile-nav{display:flex}
-  .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .flashcard-container{width:100%;max-width:340px;height:260px}
-  .flashcard .word{font-size:32px}
-  .content{padding:16px 12px}
-  .topbar{padding:12px 16px 12px 56px}
-  .options-grid,.quiz-options{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .flashcard-container{width:100%;max-width:340px;height:230px;margin:10px 0}
+  .flashcard .word{font-size:30px}
+  .content{padding:10px 10px}
+  .card{padding:14px 12px;margin-bottom:12px}
+  .card-header{margin-bottom:10px}
+  .topbar{padding:10px 14px 10px 54px}
+  .options-grid,.quiz-options{grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .quiz-opt,.option-btn{padding:10px 8px;font-size:14px;gap:4px}
+  .quiz-opt .opt-emoji{font-size:24px}
+  .quiz-word{font-size:28px;margin-bottom:8px}
+  .cloze-sentence{font-size:16px;padding:10px 12px;margin:6px auto}
+  .listening-area,.speaking-area{padding:12px 0}
+  .listen-btn{width:72px;height:72px;font-size:30px;margin:10px auto}
   .rating-btns{flex-wrap:wrap}
   .rating-btns .btn{min-width:45%}
 }
@@ -384,6 +392,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
                   <div class="meaning" id="reviewMeaningZH">-</div>
                   <div class="meaning-en" id="reviewMeaningEN">-</div>
                   <div class="example" id="reviewExample"></div>
+                  <div id="reviewExampleZH" style="font-size:12px;color:var(--text2);margin-top:4px"></div>
                 </div>
               </div>
             </div>
@@ -1575,6 +1584,19 @@ function getWordVisual(w) {
   return WORD_VISUALS[w.es] || CAT_ICONS[w.cat] || '📖';
 }
 
+function getWordVisualHtml(w, size = 56) {
+  if (w.img) {
+    return `<img src="${w.img}" alt="${escapeHtml(w.es)}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)">`;
+  }
+  const emoji = getWordVisual(w);
+  // Convert first codepoint(s) to Twemoji SVG for crisp vector rendering across all devices
+  const codePoints = [...emoji].map(c => c.codePointAt(0).toString(16)).filter(cp => cp !== 'fe0f').join('-');
+  if (codePoints) {
+    return `<img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codePoints}.svg" alt="${emoji}" style="width:${size}px;height:${size}px;vertical-align:middle" onerror="this.outerHTML='<span style=font-size:${size}px>${emoji}</span>'">`;
+  }
+  return `<span style="font-size:${size}px">${emoji}</span>`;
+}
+
 function getCognateHint(w) {
   const esClean = w.es.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');
   const enWords = w.en.toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).filter(x => x.length >= 4);
@@ -1768,7 +1790,7 @@ function showStudyCard() {
 
   const w = learnQueue[learnIdx];
   currentWord = w;
-  document.getElementById('learnVisual').textContent = getWordVisual(w);
+  document.getElementById('learnVisual').innerHTML = getWordVisualHtml(w, 68);
   document.getElementById('learnWord').textContent = w.es;
   document.getElementById('learnCatTag').textContent = w.cat;
   document.getElementById('learnMeaningZH').textContent = w.zh;
@@ -1777,12 +1799,40 @@ function showStudyCard() {
   document.getElementById('learnCognateWrap').innerHTML = cog ? `<span class="cognate-tag">${cog}</span>` : '';
   document.getElementById('learnExample').textContent = w.ex || '';
   document.getElementById('learnExampleZH').textContent = w.exZh || '';
+  if (w.ex && !w.exZh) translateExample(w, 'learnExampleZH');
   document.getElementById('learnCounter').textContent = `学习 ${learnIdx + 1} / ${learnQueue.length} (本组 ${learnBatch.length + 1}/${BATCH_SIZE})`;
   speak(w.es);
 }
 
 function speakExample() {
   if (currentWord && currentWord.ex) speak(currentWord.ex);
+}
+
+const exZhCache = (() => {
+  try { return JSON.parse(localStorage.getItem('hola_ex_zh_cache') || '{}'); } catch (e) { return {}; }
+})();
+
+async function translateExample(w, elId) {
+  const el = document.getElementById(elId);
+  if (!el || !w.ex) return;
+  if (w.exZh) { el.textContent = w.exZh; return; }
+  if (exZhCache[w.ex]) { w.exZh = exZhCache[w.ex]; el.textContent = w.exZh; return; }
+  el.textContent = '例句翻译加载中...';
+  try {
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(w.ex)}&langpair=es|zh-CN`);
+    const data = await res.json();
+    const tr = data && data.responseData && data.responseData.translatedText;
+    if (tr) {
+      w.exZh = tr;
+      exZhCache[w.ex] = tr;
+      localStorage.setItem('hola_ex_zh_cache', JSON.stringify(exZhCache));
+      if (currentWord && currentWord.es === w.es) el.textContent = tr;
+    } else {
+      el.textContent = '';
+    }
+  } catch (e) {
+    el.textContent = '';
+  }
 }
 
 function nextStudyWord() {
@@ -1827,6 +1877,8 @@ function startLearnQuiz() {
   showLearnQuiz();
 }
 
+let learnQuizHadWrong = false;
+
 function showLearnQuiz() {
   if (learnQuizQueue.length === 0) {
     if (learnIdx >= learnQueue.length) {
@@ -1837,6 +1889,7 @@ function showLearnQuiz() {
     return;
   }
   learnQuizAnswered = false;
+  learnQuizHadWrong = false;
   const w = learnQuizQueue[0];
   learnQuizCurrent = w;
   currentWord = w;
@@ -1858,22 +1911,22 @@ function showLearnQuiz() {
 
   if (canCloze) {
     const masked = w.ex.replace(wordRe, '$1<span class="cloze-blank">_____</span>$2');
-    document.getElementById('learnQuizPrompt').textContent = `例句填空：选出最适合填入空白处的词（意思：${w.zh}）`;
+    document.getElementById('learnQuizPrompt').textContent = `例句填空（意思：${w.zh}）`;
     document.getElementById('learnQuizWord').innerHTML = `<div class="cloze-sentence">${masked}</div>`;
     document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
       `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,'${escapeHtml(o.es)}')">
-        <span class="opt-emoji">${getWordVisual(o)}</span>
-        <span style="font-size:17px;color:var(--primary)">${o.es}</span>
+        <span class="opt-emoji">${getWordVisualHtml(o, 28)}</span>
+        <span style="font-size:16px;color:var(--primary)">${o.es}</span>
         <small style="color:var(--text3);font-weight:400">${o.zh}</small>
       </button>`
     ).join('');
     speak(w.ex);
   } else {
-    document.getElementById('learnQuizPrompt').textContent = '还记得这个词的意思吗？选出正确答案';
+    document.getElementById('learnQuizPrompt').textContent = '选出正确的意思';
     document.getElementById('learnQuizWord').textContent = w.es;
     document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
       `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,'${escapeHtml(o.es)}')">
-        <span class="opt-emoji">${getWordVisual(o)}</span>
+        <span class="opt-emoji">${getWordVisualHtml(o, 28)}</span>
         <span>${o.zh}</span>
         <small style="color:var(--text3);font-weight:400">${o.en}</small>
       </button>`
@@ -1884,25 +1937,28 @@ function showLearnQuiz() {
 
 function answerLearnQuiz(btn, chosenEs) {
   if (learnQuizAnswered) return;
-  learnQuizAnswered = true;
-  document.getElementById('learnQuizHintBtn').style.display = 'none';
   const w = learnQuizCurrent;
   const isCorrect = chosenEs === w.es;
 
   if (isCorrect) {
+    learnQuizAnswered = true;
     btn.classList.add('correct');
-    document.getElementById('learnQuizFeedback').innerHTML = `<span style="color:var(--success)">✅ 记住了！将在 10分钟后 & 1天后安排复习</span>`;
-    markWordLearned(w, true);
+    document.querySelectorAll('#learnQuizOptions .quiz-opt').forEach(b => b.disabled = true);
+    document.getElementById('learnQuizHintBtn').style.display = 'none';
+    document.getElementById('learnQuizFeedback').innerHTML = `<span style="color:var(--success)">✅ 正确！自动进入下一题...</span>`;
+    markWordLearned(w, !learnQuizHadWrong);
     learnQuizQueue.shift();
+    if (learnQuizHadWrong) {
+      // Had a mistake on first try: re-queue at end for extra reinforcement
+      learnQuizQueue.push(w);
+    }
+    setTimeout(() => nextLearnQuiz(), 550);
   } else {
+    learnQuizHadWrong = true;
     btn.classList.add('wrong');
-    document.querySelector(`#learnQuizOptions .quiz-opt[data-es="${CSS.escape(w.es)}"]`)?.classList.add('correct');
-    document.getElementById('learnQuizFeedback').innerHTML = `<span style="color:var(--danger)">❌ 没关系，这个词已放回队列末尾，稍后再测一次！</span>`;
-    // Re-queue at end so user must actually recall it before passing
-    learnQuizQueue.shift();
-    learnQuizQueue.push(w);
+    btn.disabled = true;
+    document.getElementById('learnQuizFeedback').innerHTML = `<span style="color:var(--danger)">❌ 不对，请重新选择正确的答案！</span>`;
   }
-  document.getElementById('learnQuizNextBtn').style.display = 'inline-flex';
 }
 
 function revealQuizHint() {
@@ -2004,13 +2060,15 @@ function showReviewCard() {
   const w = reviewQueue[reviewIdx];
   const ws = state.words[w.es] || {ef:2.5,interval:1,reps:1};
   currentWord = w;
-  document.getElementById('reviewVisual').textContent = getWordVisual(w);
+  document.getElementById('reviewVisual').innerHTML = getWordVisualHtml(w, 48);
   document.getElementById('reviewWord').textContent = w.es;
   document.getElementById('reviewPhonetic').textContent = '';
   document.getElementById('reviewCatTag').textContent = w.cat;
   document.getElementById('reviewMeaningZH').textContent = w.zh;
   document.getElementById('reviewMeaningEN').textContent = w.en;
   document.getElementById('reviewExample').textContent = w.ex || '';
+  document.getElementById('reviewExampleZH').textContent = w.exZh || '';
+  if (w.ex && !w.exZh) translateExample(w, 'reviewExampleZH');
   document.getElementById('reviewFlashcard').classList.remove('flipped');
   document.getElementById('reviewRatingBtns').style.display = 'none';
   document.getElementById('reviewCounter').textContent = `${reviewIdx + 1} / ${reviewQueue.length}`;
@@ -2121,21 +2179,26 @@ function playListenWord() {
   speak(currentWord.es, () => btn.classList.remove('playing'));
 }
 
+let listenHadWrong = false;
+
 function checkListenAnswer(btn, answer, correct) {
   if (listenAnswered) return;
-  listenAnswered = true;
-  listenTotal++;
-  
   if (answer === correct) {
+    listenAnswered = true;
     btn.classList.add('correct');
-    listenCorrect++;
+    document.querySelectorAll('#listenOptions .option-btn').forEach(b => b.disabled = true);
+    listenTotal++;
+    if (!listenHadWrong) listenCorrect++;
+    listenHadWrong = false;
+    document.getElementById('listenScore').textContent = `得分: ${listenCorrect}/${listenTotal}`;
+    setTimeout(() => nextListenQuestion(), 550);
   } else {
+    listenHadWrong = true;
     btn.classList.add('wrong');
-    document.querySelector(`.option-btn[data-answer="${CSS.escape(correct)}"]`)?.classList.add('correct');
+    btn.disabled = true;
+    showToast('❌ 不对，再听一遍重选');
+    playListenWord();
   }
-  
-  document.getElementById('listenScore').textContent = `得分: ${listenCorrect}/${listenTotal}`;
-  document.getElementById('listenNextBtn').style.display = 'inline-flex';
 }
 
 function nextListenQuestion() {
@@ -2546,40 +2609,12 @@ function createUtterance(text, onEnd) {
 
 const audioPlayer = typeof Audio !== 'undefined' ? new Audio() : null;
 
-function playOnlineAudio(text, onEnd) {
-  if (!audioPlayer) { if (onEnd) onEnd(); return false; }
-  try {
-    audioPlayer.pause();
-    audioPlayer.src = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&le=es';
-    audioPlayer.playbackRate = Math.max(0.5, Math.min(2.0, state.speechRate || 0.9));
-    audioPlayer.onended = () => { if (onEnd) onEnd(); };
-    audioPlayer.onerror = () => { if (onEnd) onEnd(); };
-    const p = audioPlayer.play();
-    if (p && typeof p.catch === 'function') {
-      p.catch(() => { if (onEnd) onEnd(); });
-    }
-    return true;
-  } catch (e) {
-    if (onEnd) onEnd();
-    return false;
-  }
-}
-
-function speak(text, onEnd) {
-  if (typeof speechSynthesis !== 'undefined' && !cachedVoice) loadVoice();
-  const hasLocalEsVoice = !!cachedVoice;
-  const engine = state.ttsEngine || 'auto';
-  const useOnline = engine === 'online' || (engine === 'auto' && (isMobile || !hasLocalEsVoice));
-
-  if (useOnline) {
-    if (playOnlineAudio(text, onEnd)) return;
-  }
-
+function speakLocalTTS(text, onEnd) {
   if (typeof speechSynthesis === 'undefined') {
-    playOnlineAudio(text, onEnd);
+    if (onEnd) onEnd();
     return;
   }
-
+  if (!cachedVoice) loadVoice();
   if (isMobile) {
     if (speechSynthesis.speaking || speechSynthesis.pending) {
       speechSynthesis.cancel();
@@ -2588,8 +2623,6 @@ function speak(text, onEnd) {
     speechSynthesis.speak(utter);
     return;
   }
-
-  // Desktop Chrome workaround: small delay after cancel + keepAlive
   speechSynthesis.cancel();
   setTimeout(() => {
     const utter = createUtterance(text, null);
@@ -2602,6 +2635,56 @@ function speak(text, onEnd) {
     utter.onerror = () => { clearInterval(keepAlive); if (onEnd) onEnd(); };
     speechSynthesis.speak(utter);
   }, 50);
+}
+
+function playOnlineAudio(text, onEnd, fallbackToLocal = true) {
+  if (!audioPlayer) {
+    if (fallbackToLocal) speakLocalTTS(text, onEnd);
+    else if (onEnd) onEnd();
+    return false;
+  }
+  try {
+    audioPlayer.pause();
+    audioPlayer.src = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&le=es';
+    audioPlayer.playbackRate = Math.max(0.5, Math.min(2.0, state.speechRate || 0.9));
+    audioPlayer.onended = () => { if (onEnd) onEnd(); };
+    audioPlayer.onerror = () => {
+      if (fallbackToLocal) speakLocalTTS(text, onEnd);
+      else if (onEnd) onEnd();
+    };
+    const p = audioPlayer.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {
+        if (fallbackToLocal) speakLocalTTS(text, onEnd);
+        else if (onEnd) onEnd();
+      });
+    }
+    return true;
+  } catch (e) {
+    if (fallbackToLocal) speakLocalTTS(text, onEnd);
+    else if (onEnd) onEnd();
+    return false;
+  }
+}
+
+function speak(text, onEnd) {
+  if (typeof speechSynthesis !== 'undefined' && !cachedVoice) loadVoice();
+  const hasLocalEsVoice = !!cachedVoice;
+  const engine = state.ttsEngine || 'auto';
+  const isSentence = text.trim().split(/\s+/).length >= 3;
+
+  // For full sentences: prefer local Spanish TTS if available, else online MP3 (with local fallback)
+  if (engine === 'local' || (engine === 'auto' && isSentence && hasLocalEsVoice)) {
+    speakLocalTTS(text, onEnd);
+    return;
+  }
+
+  const useOnline = engine === 'online' || (engine === 'auto' && (isMobile || !hasLocalEsVoice || !isSentence));
+  if (useOnline) {
+    playOnlineAudio(text, onEnd, true);
+    return;
+  }
+  speakLocalTTS(text, onEnd);
 }
 
 function speakWord() {
