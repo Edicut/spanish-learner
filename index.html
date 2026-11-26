@@ -1909,8 +1909,11 @@ let learnBatch = [];
 let learnQuizQueue = [];
 let learnQuizCurrent = null;
 let learnQuizAnswered = false;
+let learnQuizAutoAdvance = false;
+let learnQuizAdvanceTimer;
 let learnPhase = 'idle';
 const BATCH_SIZE = 5;
+const QUIZ_FEEDBACK_MS = 650;
 
 function hasActiveLearnSession() {
   return learnPhase === 'study' || learnPhase === 'quiz';
@@ -1921,6 +1924,7 @@ function openLearn(queue, extra = false) {
     startLearn(queue, extra);
   } else {
     currentWord = learnPhase === 'quiz' ? learnQuizCurrent : learnQueue[learnIdx];
+    if (learnPhase === 'quiz' && learnQuizAutoAdvance) scheduleLearnQuizAdvance();
   }
 }
 
@@ -2109,6 +2113,8 @@ function quizOptionsFor(word) {
 }
 
 function showLearnQuiz() {
+  clearTimeout(learnQuizAdvanceTimer);
+  learnQuizAutoAdvance = false;
   if (learnQuizQueue.length === 0) {
     if (learnIdx >= learnQueue.length) {
       showLearnComplete();
@@ -2149,7 +2155,7 @@ function showLearnQuiz() {
     document.getElementById('learnQuizPrompt').textContent = '选出正确的意思';
     document.getElementById('learnQuizWord').textContent = w.es;
     document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
-      `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,this.dataset.es)">
+      `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,this.dataset.es,true)">
         <span>${o.zh}</span>
         <small style="color:var(--text3);font-weight:400">${o.en}</small>
       </button>`
@@ -2158,7 +2164,7 @@ function showLearnQuiz() {
   }
 }
 
-function answerLearnQuiz(btn, chosenEs) {
+function answerLearnQuiz(btn, chosenEs, autoAdvance = false) {
   if (learnQuizAnswered) return;
   const w = learnQuizCurrent;
   const isCorrect = chosenEs === w.es;
@@ -2176,7 +2182,12 @@ function answerLearnQuiz(btn, chosenEs) {
       // Had a mistake on first try: re-queue at end for extra reinforcement
       learnQuizQueue.push(w);
     }
-    showQuizContinue();
+    if (autoAdvance) {
+      learnQuizAutoAdvance = true;
+      scheduleLearnQuizAdvance();
+    } else {
+      showQuizContinue();
+    }
   } else {
     learnQuizHadWrong = true;
     btn.classList.add('wrong');
@@ -2205,6 +2216,13 @@ function showQuizContinue() {
   next.style.display = 'inline-flex';
   next.textContent = !learnQuizQueue.length && learnIdx >= learnQueue.length ? '查看本轮结果 →' : '继续 →';
   next.focus({preventScroll:true});
+}
+
+function scheduleLearnQuizAdvance() {
+  clearTimeout(learnQuizAdvanceTimer);
+  learnQuizAdvanceTimer = setTimeout(() => {
+    if (currentSection === 'learn' && !document.hidden && learnQuizAutoAdvance) nextLearnQuiz();
+  }, QUIZ_FEEDBACK_MS);
 }
 
 function nextLearnQuiz() {
@@ -3144,6 +3162,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     abortRecording();
     stopPracticeAudio();
+  } else if (currentSection === 'learn' && learnPhase === 'quiz' && learnQuizAutoAdvance) {
+    scheduleLearnQuizAdvance();
   }
 });
 window.addEventListener('pagehide', () => {
