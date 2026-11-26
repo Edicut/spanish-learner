@@ -48,6 +48,10 @@ function setupNavigation() {
     renderLessons();
   });
   document.getElementById('lessonGrid').addEventListener('click', event => {
+    if (event.target.closest('[data-photo-course]')) {
+      startPhotoCourse();
+      return;
+    }
     const button = event.target.closest('[data-topic]');
     if (button) startLessonCategory(button.dataset.topic);
   });
@@ -169,7 +173,12 @@ function renderLessons() {
   }
   const topics = [...new Set([...topicOrder, ...groups.keys()])].filter(cat => groups.has(cat));
   const visible = showAllTopics ? topics : topics.slice(0, topicOrder.length);
-  document.getElementById('lessonGrid').innerHTML = visible.map((cat, index) => {
+  const photoCount = new Set(VOCAB.filter(wordPhoto).map(w => w.es)).size;
+  const photoCourse = photoCount ? `<button type="button" class="topic-card photo-course" data-photo-course>
+    <span class="topic-emoji" aria-hidden="true">${uiIcon('cards')}</span>
+    <span class="topic-copy"><strong>看图记词</strong><small>${photoCount} 个配图词</small></span>
+    ${uiIcon('chevron')}</button>` : '';
+  document.getElementById('lessonGrid').innerHTML = photoCourse + visible.map((cat, index) => {
     const words = [...groups.get(cat)];
     const learned = words.filter(es => state.words[es] && state.words[es].status !== 'new').length;
     return `<button type="button" class="topic-card tint-${index % 6}" data-topic="${cat}">

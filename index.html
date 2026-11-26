@@ -232,9 +232,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .icon-sheet{display:none}
 .ui-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 </style>
-<link rel="stylesheet" href="shell.css?v=2">
+<link rel="stylesheet" href="shell.css?v=4">
 <link rel="stylesheet" href="library.css?v=2">
 <link rel="stylesheet" href="settings.css?v=2">
+<script src="word-photos.js?v=4" defer></script>
+<script src="word-cues.js?v=4" defer></script>
+<script src="dialogues.js?v=4" defer></script>
 <script src="progress.js?v=2" defer></script>
 </head>
 <body>
@@ -334,7 +337,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
             <div class="study-card">
               <div class="study-card-top">
                 <span class="category-tag" id="learnCatTag"></span>
-                <div class="visual-badge" id="learnVisual">📖</div>
+                <div class="visual-badge" id="learnVisual" hidden></div>
                 <div class="word" id="learnWord" lang="es">-</div>
                 <button class="btn btn-icon study-audio" onclick="speakWord()" aria-label="播放单词发音" title="播放单词发音"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#i-volume"></use></svg></button>
               </div>
@@ -404,7 +407,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
                 </div>
                 <div class="back" aria-hidden="true">
-                  <div class="visual-badge-sm" id="reviewVisual">📖</div>
+                  <div class="visual-badge-sm" id="reviewVisual" hidden></div>
                   <div class="meaning" id="reviewMeaningZH">-</div>
                   <div class="meaning-en" id="reviewMeaningEN">-</div>
                   <div class="example" id="reviewExample"></div>
@@ -467,7 +470,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
         </div>
         <div class="speaking-area" id="speakArea">
           <div id="speakInstructions" style="font-size:14px;color:var(--text2)">先听发音，再跟读单词</div>
-          <div class="visual-badge-sm" id="speakVisual" style="margin-top:12px">🎤</div>
+          <div class="visual-badge-sm" id="speakVisual" hidden></div>
           <div class="target-word" id="speakTargetWord" lang="es" style="margin-top:4px">-</div>
           <div class="target-phonetic" id="speakTargetPhonetic"></div>
           <button class="btn btn-outline btn-sm" onclick="speakWord()" style="margin-bottom:16px"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#i-volume"></use></svg> 先听一遍</button>
@@ -485,19 +488,54 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
     <!-- Sentences -->
     <div class="section" id="sec-sentences">
-      <div class="card">
+      <div class="practice-mode" aria-label="练习方式">
+        <button type="button" class="btn btn-primary" id="replyModeBtn" aria-pressed="true" onclick="setSentencePracticeMode(true)">听完接话</button>
+        <button type="button" class="btn btn-outline" id="sentenceModeBtn" aria-pressed="false" onclick="setSentencePracticeMode(false)">逐句跟读</button>
+      </div>
+      <div class="card dialogue-card" id="replyPractice">
+        <div class="dialogue-header">
+          <label class="sentence-topic">场景 <select id="replyCategory" onchange="setReplyCategory(this.value)"></select></label>
+          <div class="fc-counter" id="replyCounter"></div>
+        </div>
+        <div class="reply-prompt">
+          <button type="button" class="btn btn-primary" onclick="playReplyLine('prompt')">听对方说</button>
+          <button type="button" class="btn btn-outline" id="promptTextBtn" aria-controls="replyPromptText" aria-expanded="false" onclick="toggleReplyPrompt()">看原句</button>
+          <p lang="es" id="replyPromptText" hidden></p>
+        </div>
+        <div class="reply-task">
+          <h3>轮到你</h3>
+          <p id="replyCue" class="practice-caption"></p>
+          <div class="reply-actions">
+            <button type="button" class="btn btn-outline" id="replyMicBtn" aria-pressed="false" onclick="toggleReplyMic()">说出我的回答</button>
+            <button type="button" class="btn btn-outline" id="replyShow" aria-controls="replyAnswer" aria-expanded="false" onclick="revealReply()">看参考回答</button>
+          </div>
+          <p id="replyMicHint" role="status" class="practice-caption"></p>
+          <p id="replyTranscript" aria-live="polite"></p>
+        </div>
+        <div class="reply-answer" id="replyAnswer" hidden>
+          <p lang="es" id="replySpanish"></p>
+          <p id="replyChinese"></p>
+          <button type="button" class="btn btn-outline" onclick="playReplyLine('reply')">听参考发音</button>
+        </div>
+        <div class="reply-navigation">
+          <button type="button" class="btn btn-outline" onclick="moveReply(-1)">← 上一组</button>
+          <button type="button" class="btn btn-primary" onclick="moveReply(1)">下一组 →</button>
+        </div>
+      </div>
+      <div class="card" id="singleSentencePractice" hidden>
         <div class="card-header"><h3>场景对话</h3><div id="sentenceCounter" style="font-size:14px;color:var(--text2)"></div></div>
-        <div class="grammar-tabs" id="sentenceCatTabs"></div>
+        <label class="sentence-topic">场景 <select id="sentenceCategory" onchange="setSentenceCat(this.value)"></select></label>
         <div class="speaking-area" id="sentenceArea" style="padding-top:10px">
           
           <div class="sentence-card">
             <div class="sentence-es" id="sentenceES" lang="es">-</div>
             <div class="sentence-zh" id="sentenceZH" style="visibility:hidden">-</div>
           </div>
-          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <div class="sentence-actions">
             <button class="btn btn-primary" onclick="speakSentence()"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#i-volume"></use></svg> 播放</button>
             <button class="btn btn-outline" id="sentenceTranslateBtn" aria-expanded="false" aria-controls="sentenceZH" onclick="toggleSentenceTranslation()">显示翻译</button>
-            <button class="btn btn-outline" onclick="nextSentence()">下一句 →</button>
+            <button class="btn btn-outline" onclick="moveSentence(-1)">← 上一句</button>
+            <button class="btn btn-outline" onclick="moveSentence(1)">下一句 →</button>
           </div>
           <div style="margin-top:20px">
             <button class="mic-btn" id="sentenceMicBtn" aria-label="开始跟读句子" aria-pressed="false" onclick="toggleSentenceMic()" style="width:60px;height:60px;font-size:24px"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#i-mic"></use></svg></button>
@@ -689,7 +727,7 @@ const VOCAB = [
   {es:"marrón",zh:"棕色",en:"brown",cat:"颜色",ex:"Ojos marrones."},
   // === 食物与饮品 ===
   {es:"agua",zh:"水",en:"water",cat:"食物",ex:"Un vaso de agua, por favor."},
-  {es:"pan",zh:"面包",en:"bread",cat:"食物",ex:"Pan fresco cada mañana."},
+  {es:"pan",zh:"面包",en:"bread",cat:"食物",ex:"Pan fresco cada mañana.",exZh:"每天早上都有新鲜面包。"},
   {es:"leche",zh:"牛奶",en:"milk",cat:"食物",ex:"Un vaso de leche."},
   {es:"café",zh:"咖啡",en:"coffee",cat:"食物",ex:"¿Quieres un café?"},
   {es:"té",zh:"茶",en:"tea",cat:"食物",ex:"Prefiero el té verde."},
@@ -1413,6 +1451,127 @@ const VOCAB = [
   {es:"techo",zh:"屋顶/天花板",en:"roof/ceiling",cat:"日常",ex:"El techo es alto."},
   {es:"suelo",zh:"地面/地板",en:"floor/ground",cat:"日常",ex:"Cayó al suelo."},
   {es:"pared",zh:"墙壁",en:"wall",cat:"日常",ex:"Una pared blanca."},
+  {es:"vale",zh:"好啊 / 行",en:"okay",ex:"Vale, nos vemos a las seis.",cat:"日常口语"},
+  {es:"claro que sí",zh:"当然可以",en:"of course",ex:"Claro que sí, te ayudo.",cat:"日常口语"},
+  {es:"ni idea",zh:"完全不知道",en:"no idea",ex:"Ni idea de dónde está.",cat:"日常口语"},
+  {es:"qué va",zh:"哪有 / 不是那样",en:"not at all",ex:"¡Qué va! Todavía no he salido.",cat:"日常口语"},
+  {es:"ya veo",zh:"我明白了",en:"I see",ex:"Ah, ya veo lo que dices.",cat:"日常口语"},
+  {es:"ya está",zh:"好了 / 弄好了",en:"done / that's it",ex:"Ya está, puedes pasar.",cat:"日常口语"},
+  {es:"da igual",zh:"都行 / 无所谓",en:"it doesn't matter",ex:"Da igual, elige tú.",cat:"日常口语"},
+  {es:"no pasa nada",zh:"没事 / 不要紧",en:"no worries",ex:"No pasa nada, tenemos tiempo.",cat:"日常口语"},
+  {es:"sin problema",zh:"没问题",en:"no problem",ex:"Sí, puedo pasar por ti sin problema.",cat:"日常口语"},
+  {es:"qué bien",zh:"太好了",en:"that's great",ex:"¡Qué bien que puedas venir!",cat:"日常口语"},
+  {es:"qué pena",zh:"真可惜",en:"what a shame",ex:"¡Qué pena que no puedas venir!",cat:"日常口语"},
+  {es:"menos mal",zh:"还好 / 幸亏",en:"thank goodness",ex:"Menos mal que me llamaste.",cat:"日常口语"},
+  {es:"en serio",zh:"认真的 / 说真的",en:"seriously",ex:"¿En serio te vas mañana?",cat:"日常口语"},
+  {es:"de verdad",zh:"真的",en:"really",ex:"Gracias de verdad.",cat:"日常口语"},
+  {es:"por si acaso",zh:"以防万一",en:"just in case",ex:"Lleva un paraguas por si acaso.",cat:"日常口语"},
+  {es:"a lo mejor",zh:"说不定 / 也许",en:"maybe",ex:"A lo mejor llego un poco tarde.",cat:"日常口语"},
+  {es:"de momento",zh:"暂时 / 目前",en:"for now",ex:"De momento todo va bien.",cat:"日常口语"},
+  {es:"en un rato",zh:"过一会儿",en:"in a little while",ex:"Te llamo en un rato.",cat:"日常口语"},
+  {es:"de vez en cuando",zh:"时不时",en:"from time to time",ex:"Nos vemos de vez en cuando.",cat:"日常口语"},
+  {es:"enseguida",zh:"马上",en:"right away",ex:"Bajo enseguida.",cat:"日常口语"},
+  {es:"tal cual",zh:"就是这样 / 原样",en:"exactly / just like that",ex:"Sí, fue tal cual.",cat:"日常口语"},
+  {es:"¡anda!",zh:"哎呀 / 真没想到（常见于西班牙）",en:"wow / oh!",ex:"¡Anda, eres tú!",cat:"日常口语"},
+  {es:"qué rollo",zh:"真麻烦 / 真无聊（常见于西班牙）",en:"what a pain / how boring",ex:"¡Qué rollo tener que esperar tanto!",cat:"日常口语"},
+  {es:"qué guay",zh:"太棒了（常见于西班牙）",en:"how cool",ex:"¡Qué guay tu mochila nueva!",cat:"日常口语"},
+  {es:"qué mono",zh:"真可爱（常见于西班牙）",en:"how cute",ex:"¡Qué mono es tu perro!",cat:"日常口语"},
+  {es:"me da cosa",zh:"我有点不好意思 / 不太敢",en:"I feel awkward about it",ex:"Me da cosa pedirle otro favor.",cat:"日常口语"},
+  {es:"me apetece",zh:"我想…… / 我有兴致……",en:"I feel like it",ex:"Me apetece tomar un café.",cat:"日常口语"},
+  {es:"me viene bien",zh:"我方便 / 这个时间适合我",en:"that works for me",ex:"El viernes me viene bien.",cat:"日常口语"},
+  {es:"me pilla lejos",zh:"离我这儿有点远（常见于西班牙）",en:"it's far from where I am",ex:"Ese restaurante me pilla lejos.",cat:"日常口语"},
+  {es:"por mi parte",zh:"我这边的话 / 就我而言",en:"as far as I'm concerned",ex:"Por mi parte, podemos empezar.",cat:"日常口语"},
+  {es:"ya te digo",zh:"可不是嘛（常见于西班牙）",en:"tell me about it",ex:"—Hoy hace mucho calor. —Ya te digo.",cat:"日常口语"},
+  {es:"cuídate",zh:"保重 / 照顾好自己",en:"take care",ex:"Nos vemos pronto. ¡Cuídate!",cat:"日常口语"},
+  {es:"un montón",zh:"好多 / 非常",en:"a lot",ex:"Hace un montón que no nos vemos.",cat:"日常口语"},
+  {es:"a tope",zh:"满满当当 / 忙得很（常见于西班牙）",en:"flat out / full on",ex:"Esta semana estoy a tope.",cat:"日常口语"},
+  {es:"me suena",zh:"我好像听过 / 有印象",en:"it rings a bell",ex:"Ese nombre me suena.",cat:"日常口语"},
+  {es:"qué lío",zh:"真乱 / 真让人头大",en:"what a mess",ex:"¡Qué lío con estos horarios!",cat:"日常口语"},
+  {es:"de chill",zh:"放松一下（年轻人口语）",en:"chilling",ex:"Hoy me quedo en casa de chill.",cat:"日常口语"},
+  {es:"sin prisa",zh:"不着急",en:"no rush",ex:"Ven sin prisa, ya estoy aquí.",cat:"日常口语"},
+  {es:"apuntarse",zh:"报名 / 算我一个",en:"to sign up / to join",ex:"¿Te apuntas a cenar?",cat:"动词"},
+  {es:"avisar",zh:"通知 / 告诉一声",en:"to let someone know",ex:"Avísame cuando salgas.",cat:"动词"},
+  {es:"recoger",zh:"去接 / 拿走 / 收起来",en:"to pick up / to tidy away",ex:"Te recojo a las ocho.",cat:"动词"},
+  {es:"acompañar",zh:"陪同",en:"to go with / to accompany",ex:"¿Me acompañas a la tienda?",cat:"动词"},
+  {es:"pasarse",zh:"顺路过来 / 做过头",en:"to drop by / to overdo it",ex:"Pásate por casa cuando quieras.",cat:"动词"},
+  {es:"apañarse",zh:"应付过去 / 想办法（常见于西班牙）",en:"to manage / to get by",ex:"No te preocupes, me apaño.",cat:"动词"},
+  {es:"pillar",zh:"赶上 / 逮到（常见于西班牙）",en:"to catch / to get",ex:"Voy a pillar el último tren.",cat:"动词"},
+  {es:"charlar",zh:"闲聊",en:"to chat",ex:"¿Nos sentamos un rato a charlar?",cat:"动词"},
+  {es:"contar",zh:"讲述 / 数数",en:"to tell / to count",ex:"Cuéntame qué pasó.",cat:"动词"},
+  {es:"borrar",zh:"删掉 / 擦掉",en:"to delete / to erase",ex:"He borrado el mensaje sin querer.",cat:"动词"},
+  {es:"reenviar",zh:"转发",en:"to forward",ex:"¿Me reenvías ese correo?",cat:"动词"},
+  {es:"silenciar",zh:"设为静音",en:"to mute",ex:"Voy a silenciar el grupo.",cat:"动词"},
+  {es:"cargar",zh:"充电 / 装载",en:"to charge / to load",ex:"Tengo que cargar el móvil.",cat:"动词"},
+  {es:"enchufar",zh:"把插头插上",en:"to plug in",ex:"¿Puedo enchufar el cargador aquí?",cat:"动词"},
+  {es:"pedir prestado",zh:"借入",en:"to borrow",ex:"¿Puedo pedirte prestado el paraguas?",cat:"动词"},
+  {es:"devolver",zh:"归还 / 退货",en:"to return / to give back",ex:"Mañana te devuelvo el libro.",cat:"动词"},
+  {es:"cancelar",zh:"取消",en:"to cancel",ex:"Tengo que cancelar la reserva.",cat:"动词"},
+  {es:"aplazar",zh:"推迟",en:"to postpone",ex:"¿Podemos aplazar la cita?",cat:"动词"},
+  {es:"acordarse",zh:"记得 / 想起",en:"to remember",ex:"¿Te acuerdas de mí?",cat:"动词"},
+  {es:"olvidarse",zh:"忘记",en:"to forget",ex:"Me he olvidado de avisarte.",cat:"动词"},
+  {es:"animarse",zh:"鼓起劲 / 愿意参加",en:"to feel encouraged / to feel up for it",ex:"¿Te animas a venir?",cat:"动词"},
+  {es:"mudarse",zh:"搬家",en:"to move house",ex:"Me mudo el mes que viene.",cat:"动词"},
+  {es:"estirar",zh:"伸展 / 拉长",en:"to stretch",ex:"Me gusta estirar después de correr.",cat:"动词"},
+  {es:"ventilar",zh:"通风",en:"to air out",ex:"Abre la ventana para ventilar la habitación.",cat:"动词"},
+  {es:"delantal",zh:"围裙",en:"apron",ex:"Ponte el delantal antes de cocinar.",cat:"日常"},
+  {es:"manopla",zh:"隔热手套 / 连指手套",en:"oven mitt / mitten",ex:"Usa la manopla para sacar la bandeja del horno.",cat:"日常"},
+  {es:"percha",zh:"衣架",en:"clothes hanger",ex:"Deja la chaqueta en esa percha.",cat:"日常"},
+  {es:"manta",zh:"毯子",en:"blanket",ex:"¿Me traes una manta?",cat:"日常"},
+  {es:"almohada",zh:"枕头",en:"pillow",ex:"Esta almohada es muy cómoda.",cat:"日常"},
+  {es:"lámpara",zh:"灯具",en:"lamp",ex:"Enciende la lámpara, por favor.",cat:"日常"},
+  {es:"zapatillas de casa",zh:"家居拖鞋",en:"house slippers",ex:"Me pongo las zapatillas de casa al llegar.",cat:"日常"},
+  {es:"móvil",zh:"手机（西班牙常用）",en:"mobile phone",cat:"办公科技",ex:"Tengo el móvil en silencio."},
+  {es:"bicicleta",zh:"自行车",en:"bicycle",cat:"旅行",ex:"Hoy voy al trabajo en bicicleta."},
+  {es:"banco de parque",zh:"公园长椅",en:"park bench",cat:"地点",ex:"Nos sentamos en un banco de parque."},
+  {es:"vaqueros",zh:"牛仔裤（西班牙常用）",en:"jeans",cat:"日常",ex:"Hoy llevo vaqueros y una camiseta."},
+  {es:"cinturón",zh:"腰带 / 皮带",en:"belt",cat:"日常",ex:"Necesito un cinturón para estos pantalones."},
+  {es:"lavarse las manos",zh:"洗手",en:"to wash one's hands",cat:"动词",ex:"Lávate las manos antes de comer."},
+  {es:"cortar",zh:"剪 / 切",en:"to cut",cat:"动词",ex:"Corta el papel por la mitad."},
+  {es:"llamar a la puerta",zh:"敲门",en:"to knock at the door",cat:"动词",ex:"Llama a la puerta antes de entrar."},
+  {es:"saludar",zh:"打招呼",en:"to greet",cat:"动词",ex:"Se paró a saludar a su vecina."},
+  {es:"abrazar",zh:"拥抱",en:"to hug",cat:"动词",ex:"Se abrazaron al verse."},
+  {es:"servir agua",zh:"倒水 / 给人上水",en:"to pour or serve water",cat:"动词",ex:"¿Me sirves un poco de agua?"},
+  {es:"barrer",zh:"扫地",en:"to sweep",cat:"动词",ex:"Voy a barrer la cocina."},
+  {es:"planta",zh:"植物 / 楼层",en:"plant / floor",cat:"自然",ex:"Esta planta necesita más luz."},
+  {es:"naranja",zh:"橙子",en:"orange (fruit)",cat:"食物",ex:"¿Quieres una naranja?"},
+  {es:"sobre",zh:"信封",en:"envelope",cat:"日常",ex:"Mete la carta en el sobre."},
+  {es:"botella reutilizable",zh:"可重复使用的水瓶",en:"reusable water bottle",ex:"Siempre llevo una botella reutilizable.",cat:"日常"},
+  {es:"enchufe",zh:"插座 / 插头",en:"socket / plug",ex:"Hay un enchufe debajo de la mesa.",cat:"日常"},
+  {es:"persiana",zh:"卷帘 / 百叶窗",en:"roller shutter / blind",ex:"Baja la persiana, que entra mucho sol.",cat:"日常"},
+  {es:"buzón",zh:"信箱",en:"mailbox",ex:"Mira si hay algo en el buzón.",cat:"日常"},
+  {es:"lavadora",zh:"洗衣机",en:"washing machine",ex:"La ropa está en la lavadora.",cat:"日常"},
+  {es:"tendedero",zh:"晾衣架",en:"drying rack / clothesline",ex:"Cuelga la ropa en el tendedero.",cat:"日常"},
+  {es:"recogedor",zh:"簸箕",en:"dustpan",ex:"El recogedor está detrás de la puerta.",cat:"日常"},
+  {es:"estropajo",zh:"百洁布 / 刷锅海绵",en:"scouring pad",ex:"Necesitamos un estropajo nuevo.",cat:"日常"},
+  {es:"balcón",zh:"阳台",en:"balcony",ex:"Nos tomamos el café en el balcón.",cat:"日常"},
+  {es:"ratón inalámbrico",zh:"无线鼠标",en:"wireless mouse",ex:"El ratón inalámbrico necesita una pila.",cat:"办公科技"},
+  {es:"auriculares inalámbricos",zh:"无线耳机",en:"wireless earbuds",ex:"He dejado los auriculares inalámbricos en casa.",cat:"办公科技"},
+  {es:"audio",zh:"语音消息 / 音频",en:"voice message / audio",ex:"Mándame un audio cuando puedas.",cat:"办公科技"},
+  {es:"ubicación",zh:"位置 / 定位",en:"location",ex:"Te envío mi ubicación por el chat.",cat:"办公科技"},
+  {es:"cobertura",zh:"手机信号 / 覆盖范围",en:"mobile reception / coverage",ex:"Aquí no tengo cobertura.",cat:"办公科技"},
+  {es:"grupo de chat",zh:"聊天群",en:"group chat",ex:"Mándalo al grupo de chat.",cat:"办公科技"},
+  {es:"código QR",zh:"二维码",en:"QR code",ex:"Escanea el código QR para ver el menú.",cat:"办公科技"},
+  {es:"captura de pantalla",zh:"截屏 / 截图",en:"screenshot",ex:"Haz una captura de pantalla y mándamela.",cat:"办公科技"},
+  {es:"paso de peatones",zh:"人行横道",en:"pedestrian crossing / crosswalk",ex:"Cruza por el paso de peatones.",cat:"旅行"},
+  {es:"transbordo",zh:"换乘",en:"transfer / connection",ex:"Tenemos que hacer transbordo en la próxima estación.",cat:"旅行"},
+  {es:"andén",zh:"站台",en:"platform",ex:"El tren sale del andén cinco.",cat:"旅行"},
+  {es:"consigna",zh:"行李寄存处",en:"luggage storage",ex:"Voy a dejar la maleta en la consigna.",cat:"旅行"},
+  {es:"tarjeta de embarque",zh:"登机牌",en:"boarding pass",ex:"Tengo la tarjeta de embarque en el móvil.",cat:"旅行"},
+  {es:"ida y vuelta",zh:"往返",en:"round trip",ex:"Quiero un billete de ida y vuelta.",cat:"旅行"},
+  {es:"parada de autobús",zh:"公交车站",en:"bus stop",ex:"La parada de autobús está al otro lado de la calle.",cat:"旅行"},
+  {es:"retraso",zh:"延误 / 迟到",en:"delay",ex:"El tren lleva diez minutos de retraso.",cat:"旅行"},
+  {es:"miel",zh:"蜂蜜",en:"honey",ex:"¿Quieres miel en el té?",cat:"食物"},
+  {es:"sandía",zh:"西瓜",en:"watermelon",ex:"La sandía está bien fría.",cat:"食物"},
+  {es:"zanahoria",zh:"胡萝卜",en:"carrot",ex:"Corta la zanahoria en trozos pequeños.",cat:"食物"},
+  {es:"agua con gas",zh:"气泡水",en:"sparkling water",ex:"¿Tenéis agua con gas?",cat:"食物"},
+  {es:"para llevar",zh:"打包带走",en:"to go / takeaway",ex:"Dos cafés para llevar, por favor.",cat:"食物"},
+  {es:"sin hielo",zh:"不加冰",en:"without ice",ex:"Una limonada sin hielo, por favor.",cat:"食物"},
+  {es:"servilleta",zh:"餐巾 / 餐巾纸",en:"napkin",ex:"¿Me pasas una servilleta?",cat:"食物"},
+  {es:"importe",zh:"金额 / 应付金额",en:"amount due",ex:"El importe total aparece en la pantalla.",cat:"购物金钱"},
+  {es:"contactless",zh:"非接触式支付 / 感应支付",en:"contactless payment",ex:"¿Puedo pagar con contactless?",cat:"购物金钱"},
+  {es:"reembolso",zh:"退款",en:"refund",ex:"El reembolso tarda unos días.",cat:"购物金钱"},
+  {es:"agotado",zh:"售罄的 / 精疲力尽的",en:"sold out / exhausted",ex:"Ese modelo está agotado.",cat:"购物金钱"},
+  {es:"probador",zh:"试衣间",en:"fitting room",ex:"¿Dónde están los probadores?",cat:"购物金钱"},
 ];
 
 // Progress in existing backups is keyed by Spanish spelling. Keep all senses in VOCAB.
@@ -1420,6 +1579,141 @@ const UNIQUE_VOCAB = [...new Set(VOCAB.map(word => word.es))].map(es => VOCAB.fi
 
 // Common sentences for practice (categorized)
 const SENTENCES = [
+  {es:"¿Qué tal tu día?",zh:"你今天过得怎么样？",cat:"聊天接话"},
+  {es:"¿Cómo te ha ido hoy?",zh:"你今天过得还顺利吗？",cat:"聊天接话"},
+  {es:"¿Qué andas haciendo?",zh:"你最近在忙什么？",cat:"聊天接话"},
+  {es:"Oye, te quería contar una cosa.",zh:"诶，我想跟你说件事。",cat:"聊天接话"},
+  {es:"¿Y eso?",zh:"怎么回事呀？",cat:"聊天接话"},
+  {es:"¿Y qué pasó después?",zh:"后来呢？",cat:"聊天接话"},
+  {es:"Venga, cuéntame.",zh:"来，说给我听听。",cat:"聊天接话"},
+  {es:"¿Cómo que no vienes?",zh:"你说你不来了？",cat:"聊天接话"},
+  {es:"¿En serio? No tenía ni idea.",zh:"真的吗？我完全不知道。",cat:"聊天接话"},
+  {es:"Ahora que lo dices, me suena.",zh:"你这么一说，我好像有印象。",cat:"聊天接话"},
+  {es:"Ya, te entiendo.",zh:"嗯，我懂你的意思。",cat:"聊天接话"},
+  {es:"A mí también me pasa.",zh:"我也会这样。",cat:"聊天接话"},
+  {es:"Pues a mí me da igual.",zh:"嗯，我都行。",cat:"聊天接话"},
+  {es:"No sé, déjame pensarlo.",zh:"我还没想好，让我想想。",cat:"聊天接话"},
+  {es:"Pensándolo bien, tienes razón.",zh:"仔细一想，你说得对。",cat:"聊天接话"},
+  {es:"Bueno, cambiando de tema…",zh:"好啦，换个话题……",cat:"聊天接话"},
+  {es:"No te oí bien. ¿Qué dijiste?",zh:"我没听清，你刚说什么？",cat:"聊天接话"},
+  {es:"¿Me lo dices de otra forma?",zh:"你能换个说法吗？",cat:"聊天接话"},
+  {es:"Sí, más o menos.",zh:"嗯，差不多吧。",cat:"聊天接话"},
+  {es:"¡Anda, qué casualidad!",zh:"哎，好巧啊！",cat:"聊天接话"},
+  {es:"Me acuerdo perfectamente.",zh:"我记得特别清楚。",cat:"聊天接话"},
+  {es:"Ya te digo, ¡qué calor hace!",zh:"可不是嘛，真热！",cat:"聊天接话"},
+  {es:"Total, que al final no fui.",zh:"总之，我最后没去。",cat:"聊天接话"},
+  {es:"Eso es justo lo que quería decir.",zh:"我就是这个意思。",cat:"聊天接话"},
+  {es:"¿Te apetece quedar este finde?",zh:"这周末想出来见个面吗？",cat:"约见改时间"},
+  {es:"¿Te apuntas a tomar algo?",zh:"要不要一起去喝点东西？",cat:"约见改时间"},
+  {es:"¿Qué tal si quedamos a las siete?",zh:"要不我们七点见？",cat:"约见改时间"},
+  {es:"¿A ti qué hora te viene mejor?",zh:"你几点比较方便？",cat:"约见改时间"},
+  {es:"Por mí, a partir de las seis.",zh:"我六点以后都可以。",cat:"约见改时间"},
+  {es:"El jueves no puedo, pero el viernes sí.",zh:"我周四没空，周五可以。",cat:"约见改时间"},
+  {es:"¿Lo dejamos para otro día?",zh:"要不我们改天？",cat:"约见改时间"},
+  {es:"Si quieres, quedamos un poco antes.",zh:"你愿意的话，我们可以早点见。",cat:"约见改时间"},
+  {es:"¿Dónde te viene bien quedar?",zh:"在哪里见面你比较方便？",cat:"约见改时间"},
+  {es:"¿Te recojo en casa?",zh:"我去你家接你吗？",cat:"约见改时间"},
+  {es:"Quedamos en la entrada, ¿vale?",zh:"我们在入口见，好吗？",cat:"约见改时间"},
+  {es:"Ya estoy aquí. ¿Tú por dónde vas?",zh:"我到了。你到哪儿了？",cat:"约见改时间"},
+  {es:"Voy con un poco de retraso.",zh:"我会晚到一会儿。",cat:"约见改时间"},
+  {es:"Llego en diez minutos, más o menos.",zh:"我大概十分钟到。",cat:"约见改时间"},
+  {es:"No hay prisa. Te espero aquí.",zh:"不着急，我在这儿等你。",cat:"约见改时间"},
+  {es:"Al final no me da tiempo a ir.",zh:"我最后还是来不及过去了。",cat:"约见改时间"},
+  {es:"Avísame si cambian los planes.",zh:"计划有变就告诉我。",cat:"约见改时间"},
+  {es:"Perfecto, entonces nos vemos allí.",zh:"好，那就在那儿见。",cat:"约见改时间"},
+  {es:"¿Hacemos algo esta tarde?",zh:"今天下午要不要一起出去做点什么？",cat:"约见改时间"},
+  {es:"Hoy me viene fatal. ¿Mañana te vale?",zh:"今天我实在不方便。明天行吗？",cat:"约见改时间"},
+  {es:"¿Tienes un minuto?",zh:"你现在有一分钟吗？",cat:"电话和发消息"},
+  {es:"¿Te pillo en mal momento?",zh:"我是不是打得不是时候？",cat:"电话和发消息"},
+  {es:"Ahora no puedo hablar. Te llamo luego.",zh:"我现在不方便说话，晚点给你打。",cat:"电话和发消息"},
+  {es:"Mándame un audio cuando puedas.",zh:"你有空时给我发条语音。",cat:"电话和发消息"},
+  {es:"Te paso mi ubicación.",zh:"我把我的定位发给你。",cat:"电话和发消息"},
+  {es:"¿Me mandas la dirección exacta?",zh:"你能把具体地址发我吗？",cat:"电话和发消息"},
+  {es:"No me ha llegado tu mensaje.",zh:"我没收到你的消息。",cat:"电话和发消息"},
+  {es:"Perdona, lo acabo de ver.",zh:"不好意思，我刚看到。",cat:"电话和发消息"},
+  {es:"No te oigo bien. Se corta.",zh:"我听不清，声音断断续续的。",cat:"电话和发消息"},
+  {es:"Aquí casi no tengo cobertura.",zh:"这里几乎没信号。",cat:"电话和发消息"},
+  {es:"Me queda muy poca batería.",zh:"我手机快没电了。",cat:"电话和发消息"},
+  {es:"¿Puedes volver a llamarme?",zh:"你能再打给我一次吗？",cat:"电话和发消息"},
+  {es:"Te llamo en cuanto salga.",zh:"我一出去就给你打。",cat:"电话和发消息"},
+  {es:"Si no contesto, escríbeme.",zh:"我没接的话就给我发消息。",cat:"电话和发消息"},
+  {es:"¿Lo puedes mandar al grupo?",zh:"你能发到群里吗？",cat:"电话和发消息"},
+  {es:"Cuando llegues, dime algo.",zh:"到了跟我说一声。",cat:"电话和发消息"},
+  {es:"Se me pasó contestarte.",zh:"我忘了回你消息。",cat:"电话和发消息"},
+  {es:"No hace falta que me contestes ahora.",zh:"你不用现在回我。",cat:"电话和发消息"},
+  {es:"¿Me echas una mano con esto?",zh:"你能帮我弄一下这个吗？",cat:"麻烦别人和婉拒"},
+  {es:"¿Me sujetas esto un momento?",zh:"你帮我拿一下这个好吗？",cat:"麻烦别人和婉拒"},
+  {es:"¿Te importa si abro la ventana?",zh:"我开一下窗，你介意吗？",cat:"麻烦别人和婉拒"},
+  {es:"¿Te importaría bajar un poco el volumen?",zh:"你能把声音调低一点吗？",cat:"麻烦别人和婉拒"},
+  {es:"¿Me dejas el cargador un momento?",zh:"充电器能借我用一下吗？",cat:"麻烦别人和婉拒"},
+  {es:"Si puedes, échale un vistazo.",zh:"你有空的话帮我看一眼。",cat:"麻烦别人和婉拒"},
+  {es:"No te preocupes, yo me encargo.",zh:"别担心，我来处理。",cat:"麻烦别人和婉拒"},
+  {es:"Déjalo, ya lo hago yo.",zh:"先放着吧，我来弄。",cat:"麻烦别人和婉拒"},
+  {es:"No hace falta, de verdad.",zh:"真的不用。",cat:"麻烦别人和婉拒"},
+  {es:"Gracias igual.",zh:"还是谢谢你。",cat:"麻烦别人和婉拒"},
+  {es:"Hoy prefiero quedarme en casa.",zh:"今天我更想待在家里。",cat:"麻烦别人和婉拒"},
+  {es:"Esta vez no me apunto.",zh:"这次我就不参加了。",cat:"麻烦别人和婉拒"},
+  {es:"Me encantaría, pero ya tengo planes.",zh:"我很想去，但已经有安排了。",cat:"麻烦别人和婉拒"},
+  {es:"¿Te importa si lo hacemos mañana?",zh:"我们明天再做，你介意吗？",cat:"麻烦别人和婉拒"},
+  {es:"Me sabe mal, pero no puedo.",zh:"我也觉得过意不去，不过我去不了。",cat:"麻烦别人和婉拒"},
+  {es:"No te lo puedo prometer.",zh:"这事我不能保证。",cat:"麻烦别人和婉拒"},
+  {es:"¿Puedes esperar un segundito?",zh:"你能稍等一小会儿吗？",cat:"麻烦别人和婉拒"},
+  {es:"Si te apetece, podemos ir juntos.",zh:"你想去的话，我们可以一起去。",cat:"麻烦别人和婉拒"},
+  {es:"Pasa, estás en tu casa.",zh:"进来吧，别客气。",cat:"在家和朋友相处"},
+  {es:"¿Te quito el abrigo?",zh:"要我帮你把外套拿去挂起来吗？",cat:"在家和朋友相处"},
+  {es:"Deja la mochila donde quieras.",zh:"背包放哪儿都行。",cat:"在家和朋友相处"},
+  {es:"¿Quieres que te ponga un café?",zh:"要我给你倒杯咖啡吗？",cat:"在家和朋友相处"},
+  {es:"¿Te pongo un poco más?",zh:"我再给你添一点？",cat:"在家和朋友相处"},
+  {es:"¿Tienes hambre o comemos luego?",zh:"你饿了吗，还是我们晚点再吃？",cat:"在家和朋友相处"},
+  {es:"¿Pedimos algo o cocinamos?",zh:"我们点吃的，还是自己做饭？",cat:"在家和朋友相处"},
+  {es:"¿Compartimos el postre?",zh:"我们一起分这个甜点吗？",cat:"在家和朋友相处"},
+  {es:"¿Queda algo de pan?",zh:"还有面包吗？",cat:"在家和朋友相处"},
+  {es:"Se nos ha acabado la leche.",zh:"我们的牛奶喝完了。",cat:"在家和朋友相处"},
+  {es:"Ahora vuelvo. Bajo a por pan.",zh:"我马上回来，下楼买个面包。",cat:"在家和朋友相处"},
+  {es:"¿Puedes pasar por el súper?",zh:"你能顺路去趟超市吗？",cat:"在家和朋友相处"},
+  {es:"Te guardo un trozo para luego.",zh:"我给你留一块，晚点吃。",cat:"在家和朋友相处"},
+  {es:"¿Me pasas la sal?",zh:"你能把盐递给我吗？",cat:"在家和朋友相处"},
+  {es:"Hace fresco. ¿Cierro la ventana?",zh:"有点凉，我把窗关上？",cat:"在家和朋友相处"},
+  {es:"Déjame las llaves en la mesa.",zh:"把钥匙放桌上给我就行。",cat:"在家和朋友相处"},
+  {es:"Apaga la luz al salir, porfa.",zh:"出去时帮忙关一下灯，谢谢。",cat:"在家和朋友相处"},
+  {es:"¿Pedimos la cuenta?",zh:"我们叫服务员结账吧？",cat:"在家和朋友相处"},
+  {es:"¿Lo pagamos por separado?",zh:"我们分开付款吗？",cat:"在家和朋友相处"},
+  {es:"Te invito yo esta vez.",zh:"这次我请你。",cat:"在家和朋友相处"},
+  {es:"¿Te encuentras un poco mejor?",zh:"你好一点了吗？",cat:"关心和道别"},
+  {es:"Te noto un poco cansado. ¿Todo bien?",zh:"我看你好像有点累。还好吗？",cat:"关心和道别"},
+  {es:"¿Quieres hablar de ello?",zh:"你想聊聊这件事吗？",cat:"关心和道别"},
+  {es:"Si necesitas algo, avísame.",zh:"要是需要什么，就告诉我。",cat:"关心和道别"},
+  {es:"No tienes que contármelo ahora.",zh:"你不用现在告诉我。",cat:"关心和道别"},
+  {es:"Vaya, lo siento mucho.",zh:"唉，听到这事我很难过。",cat:"关心和道别"},
+  {es:"Qué bien que me lo hayas contado.",zh:"谢谢你愿意把这件事告诉我。",cat:"关心和道别"},
+  {es:"Tómate tu tiempo.",zh:"慢慢来。",cat:"关心和道别"},
+  {es:"Espero que te vaya bien.",zh:"希望你一切顺利。",cat:"关心和道别"},
+  {es:"¡Que descanses!",zh:"好好休息！",cat:"关心和道别"},
+  {es:"¡Cuídate mucho!",zh:"多保重！",cat:"关心和道别"},
+  {es:"¡Que llegues bien!",zh:"路上注意安全！",cat:"关心和道别"},
+  {es:"Me tengo que ir ya.",zh:"我得走了。",cat:"关心和道别"},
+  {es:"Me ha encantado verte.",zh:"见到你真开心。",cat:"关心和道别"},
+  {es:"Hablamos luego, ¿vale?",zh:"晚点再聊，好吗？",cat:"关心和道别"},
+  {es:"La próxima quedamos con más calma.",zh:"下次咱们约个时间慢慢聊。",cat:"关心和道别"},
+  {es:"Perdona por hacerte esperar.",zh:"不好意思，让你久等了。",cat:"关心和道别"},
+  {es:"Menos mal que estás bien.",zh:"还好你没事。",cat:"关心和道别"},
+  {es:"Perdona, ¿esta fila es para pagar?",zh:"不好意思，这队是等着结账的吗？",cat:"街上和日常办事"},
+  {es:"¿Eres la última persona de la fila?",zh:"你是排在最后的吗？",cat:"街上和日常办事"},
+  {es:"Pasa tú primero.",zh:"你先请。",cat:"街上和日常办事"},
+  {es:"¿Te bajas en la siguiente?",zh:"你下一站下吗？",cat:"街上和日常办事"},
+  {es:"¿Hay que hacer transbordo?",zh:"需要换乘吗？",cat:"街上和日常办事"},
+  {es:"Creo que nos hemos pasado de parada.",zh:"我觉得我们坐过站了。",cat:"街上和日常办事"},
+  {es:"¿Puedes parar aquí mismo?",zh:"你能就在这儿停车吗？",cat:"街上和日常办事"},
+  {es:"¿Me pones un café para llevar?",zh:"能给我一杯咖啡打包吗？",cat:"街上和日常办事"},
+  {es:"¿Puede ser sin hielo?",zh:"可以不加冰吗？",cat:"街上和日常办事"},
+  {es:"¿Nos puedes traer otra servilleta?",zh:"能再给我们拿张餐巾纸吗？",cat:"街上和日常办事"},
+  {es:"¿Os queda de otro color?",zh:"还有其他颜色的吗？",cat:"街上和日常办事"},
+  {es:"¿Me lo puedo probar?",zh:"我可以试穿一下吗？",cat:"街上和日常办事"},
+  {es:"¿Se puede pagar con tarjeta?",zh:"能刷卡吗？",cat:"街上和日常办事"},
+  {es:"¿Me das el recibo, por favor?",zh:"麻烦把小票给我。",cat:"街上和日常办事"},
+  {es:"Creo que me habéis cobrado de más.",zh:"我觉得你们多收了我的钱。",cat:"街上和日常办事"},
+  {es:"¿Hay alguna farmacia abierta por aquí?",zh:"这附近有营业的药房吗？",cat:"街上和日常办事"},
+  {es:"¿Por aquí se va al centro?",zh:"去市中心是走这边吗？",cat:"街上和日常办事"},
   // 日常寒暄
   {cat:"日常寒暄",es:"¡Hola! ¿Cómo estás hoy?",zh:"你好！你今天好吗？"},
   {cat:"日常寒暄",es:"Muy bien, gracias. ¿Y tú?",zh:"很好，谢谢。你呢？"},
@@ -1532,32 +1826,53 @@ function init() {
 
 
 // ===== VISUALS & COGNATES =====
-const WORD_VISUALS = {
-  "hola":"👋","buenos días":"🌅","buenas tardes":"🌇","buenas noches":"🌙","adiós":"🙋","hasta luego":"🤝","por favor":"🙏","gracias":"💐","de nada":"😊","lo siento":"😔","perdón":"🙇","sí":"✅","no":"❌","¿cómo estás?":"💬","bien":"👍","mal":"👎","mucho gusto":"🤝","¿cómo te llamas?":"🪪","me llamo":"🏷️",
-  "uno":"1️⃣","dos":"2️⃣","tres":"3️⃣","cuatro":"4️⃣","cinco":"5️⃣","seis":"6️⃣","siete":"7️⃣","ocho":"8️⃣","nueve":"9️⃣","diez":"🔟","veinte":"2️⃣0️⃣","treinta":"3️⃣0️⃣","cuarenta":"4️⃣0️⃣","cincuenta":"5️⃣0️⃣","cien":"💯","mil":"🔢",
-  "rojo":"🔴","azul":"🔵","verde":"🟢","amarillo":"🟡","negro":"⚫","blanco":"⚪","gris":"🩶","rosa":"🩷","naranja":"🟠","morado":"🟣","marrón":"🟤",
-  "agua":"💧","pan":"🍞","leche":"🥛","café":"☕","té":"🍵","cerveza":"🍺","vino":"🍷","carne":"🥩","pollo":"🍗","pescado":"🐟","arroz":"🍚","fruta":"🍓","manzana":"🍎","verdura":"🥦","queso":"🧀","huevo":"🥚","azúcar":"🍬","sal":"🧂","sopa":"🍲","ensalada":"🥗","postre":"🍰","desayuno":"🥐","almuerzo":"🍱","cena":"🍽️",
-  "familia":"👨‍👩‍👧‍👦","padre":"👨","madre":"👩","hijo":"👦","hija":"👧","hermano":"🧑","hermana":"👩","abuelo":"👴","abuela":"👵","esposo":"🤵","esposa":"👰","bebé":"👶","amigo":"🫂","niño":"🧒","niña":"👧",
-  "cabeza":"🗣️","ojo":"👁️","nariz":"👃","boca":"👄","oreja":"👂","mano":"✋","dedo":"☝️","brazo":"💪","pierna":"🦵","pie":"🦶","corazón":"❤️","espalda":"🧍","pelo":"💇","diente":"🦷",
-  "hoy":"📅","mañana":"🌅","ayer":"⏪","ahora":"⏱️","siempre":"♾️","nunca":"🚫","lunes":"1️⃣","martes":"2️⃣","miércoles":"3️⃣","jueves":"4️⃣","viernes":"5️⃣","sábado":"6️⃣","domingo":"7️⃣","hora":"🕐","minuto":"⏲️","semana":"🗓️","mes":"📆","año":"🎆",
-  "perro":"🐶","gato":"🐱","pájaro":"🐦","pez":"🐠","caballo":"🐴","vaca":"🐄","cerdo":"🐷","ratón":"🐭","mariposa":"🦋","león":"🦁","oso":"🐻","mono":"🐒",
-  "ser":"🧬","estar":"📍","tener":"🤲","hacer":"🛠️","ir":"🚶","venir":"👋","decir":"🗣️","poder":"💪","saber":"💡","querer":"❤️","dar":"🎁","hablar":"💬","comer":"🍴","beber":"🥤","dormir":"😴","leer":"📖","escribir":"✍️","vivir":"🏡","trabajar":"💼","estudiar":"📚","comprar":"🛍️","pagar":"💳","jugar":"🎮","correr":"🏃","caminar":"🚶","pensar":"🤔","sentir":"💓","ver":"👀","oír":"👂","mirar":"👁️","escuchar":"🎧","buscar":"🔍","encontrar":"🎯","poner":"📥","salir":"🚪","entrar":"🚪","abrir":"🔓","cerrar":"🔒","esperar":"⏳","llamar":"📞","llevar":"🎒","llegar":"🏁","pasar":"➡️","creer":"✨","conocer":"🤝","aprender":"🎓","enseñar":"👩‍🏫","ayudar":"🆘","gustar":"👍","necesitar":"❗",
-  "grande":"🐘","pequeño":"🐜","bueno":"👍","malo":"👎","nuevo":"✨","viejo":"🕰️","joven":"🌱","bonito":"🌸","feo":"👹","alto":"🦒","bajo":"📏","gordo":"🐻","delgado":"🎋","rápido":"⚡","lento":"🐢","fácil":"👌","difícil":"🧩","caliente":"🔥","frío":"🧊","largo":"📏","corto":"✂️","rico":"😋","pobre":"🪙","feliz":"😄","triste":"😢","contento":"😊","enfermo":"🤒","cansado":"😪","importante":"⭐","libre":"🕊️",
-  "hotel":"🏨","aeropuerto":"🛫","avión":"✈️","tren":"🚆","autobús":"🚌","taxi":"🚕","calle":"🛣️","ciudad":"🏙️","país":"🗺️","playa":"🏖️","montaña":"⛰️","mapa":"🗺️","pasaporte":"🛂","billete":"🎫","maleta":"🧳","viaje":"🌍","museo":"🏛️","restaurante":"🍽️","tienda":"🏪","mercado":"🛒",
-  "casa":"🏠","puerta":"🚪","ventana":"🪟","mesa":"🪑","silla":"💺","cama":"🛏️","cocina":"🍳","baño":"🚿","libro":"📕","teléfono":"📱","computadora":"💻","dinero":"💰","ropa":"👕","zapato":"👟","reloj":"⌚","llave":"🔑","bolsa":"👜","cuchillo":"🔪","cuchara":"🥄","tenedor":"🍴","plato":"🍽️","vaso":"🥛","taza":"☕",
-  "escuela":"🏫","hospital":"🏥","iglesia":"⛪","parque":"🌳","biblioteca":"📚","oficina":"🏢","banco":"🏦","supermercado":"🛒","farmacia":"💊","cine":"🎬",
-  "amor":"❤️","miedo":"😱","alegría":"🎉","enojo":"😡","sorpresa":"😲","esperanza":"🌟","paz":"🕊️",
-  "doctor":"👨‍⚕️","profesor":"👨‍🏫","estudiante":"🎓","policía":"👮","abogado":"⚖️","ingeniero":"👷","cocinero":"👨‍🍳","músico":"🎵",
-  "sol":"☀️","luna":"🌙","estrella":"⭐","cielo":"☁️","mar":"🌊","río":"🏞️","lluvia":"🌧️","nieve":"❄️","viento":"💨","flor":"🌺","árbol":"🌲","tierra":"🌍"
-};
 const CAT_ICONS = {'问候':'👋','数字':'🔢','颜色':'🎨','食物':'🍽️','家庭':'👨‍👩‍👧‍👦','身体':'🦴','时间':'⏰','动物':'🐾','动词':'⚡','形容词':'📐','旅行':'✈️','日常':'🏠','地点':'📍','情感':'❤️','职业':'💼','自然':'🌿','办公科技':'💻','购物金钱':'💳','健康':'🩺','连接词':'🔗','其他':'📦'};
 
-function getWordVisual(w) {
-  return WORD_VISUALS[w.es] || CAT_ICONS[w.cat] || '📖';
+function wordPhoto(w) {
+  return WORD_PHOTOS[w.es + '@' + w.cat] || WORD_PHOTOS[w.es];
 }
 
-function getWordVisualHtml(w, size = 56) {
-  return `<span aria-hidden="true" style="display:inline-block;font-size:${size}px;line-height:1">${getWordVisual(w)}</span>`;
+function wordCue(w) {
+  return WORD_CUES[w.es + '@' + w.cat] || WORD_CUES[w.es];
+}
+
+function showWordCue(visual, word) {
+  const cue = wordCue(word);
+  if (!cue) { visual.hidden = true; return; }
+  const symbol = document.createElement('span');
+  symbol.className = 'word-cue';
+  symbol.setAttribute('aria-hidden', 'true');
+  if (cue.startsWith('#')) {
+    symbol.classList.add('word-cue-color');
+    symbol.style.setProperty('--cue-color', cue);
+  } else {
+    if (/^\d[\d ]*$/.test(cue)) symbol.classList.add('word-cue-number');
+    symbol.textContent = cue;
+  }
+  visual.replaceChildren(symbol);
+}
+
+function renderWordVisual(id, word) {
+  const visual = document.getElementById(id);
+  const filename = wordPhoto(word);
+  visual.replaceChildren();
+  visual.hidden = false;
+  if (!filename) { showWordCue(visual, word); return; }
+  const photo = new Image(240, 240);
+  photo.src = 'word-photos/' + filename;
+  photo.alt = '';
+  photo.decoding = 'async';
+  photo.addEventListener('error', () => {
+    if (visual.contains(photo)) showWordCue(visual, word);
+  }, {once: true});
+  visual.append(photo);
+}
+
+function startPhotoCourse() {
+  const words = [...new Map(VOCAB.filter(wordPhoto).map(w => [w.es, w])).values()];
+  const unseen = words.filter(w => !state.words[w.es] || state.words[w.es].status === 'new');
+  if (unseen.length) switchSection('learn', {queue: unseen});
+  else if (words.length) switchSection('review', {queue: words});
 }
 
 function getCognateHint(w) {
@@ -1616,6 +1931,10 @@ function startLearn(customQueue, extra = false) {
     const newWords = UNIQUE_VOCAB.filter(w => !state.words[w.es] || state.words[w.es].status === 'new');
     shuffleArray(newWords);
     const remaining = extra ? BATCH_SIZE : Math.max(0, state.dailyGoal - state.todayLearned);
+    if (remaining) {
+      const firstPhoto = newWords.findIndex(wordPhoto);
+      if (firstPhoto > 0) [newWords[0], newWords[firstPhoto]] = [newWords[firstPhoto], newWords[0]];
+    }
     learnQueue = newWords.slice(0, remaining);
   }
   learnIdx = 0;
@@ -1681,7 +2000,7 @@ function showStudyCard() {
 
   const w = learnQueue[learnIdx];
   currentWord = w;
-  document.getElementById('learnVisual').innerHTML = getWordVisualHtml(w, 68);
+  renderWordVisual('learnVisual', w);
   document.getElementById('learnWord').textContent = w.es;
   document.getElementById('learnCatTag').textContent = w.cat;
   document.getElementById('learnMeaningZH').textContent = w.zh;
@@ -1821,7 +2140,6 @@ function showLearnQuiz() {
     document.getElementById('learnQuizWord').innerHTML = `<div class="cloze-sentence">${masked}</div>`;
     document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
       `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,this.dataset.es)">
-        <span class="opt-emoji">${getWordVisualHtml(o, 28)}</span>
         <span style="font-size:16px;color:var(--primary)">${o.es}</span>
         <small style="color:var(--text3);font-weight:400">${o.zh}</small>
       </button>`
@@ -1832,7 +2150,6 @@ function showLearnQuiz() {
     document.getElementById('learnQuizWord').textContent = w.es;
     document.getElementById('learnQuizOptions').innerHTML = options.map(o =>
       `<button class="quiz-opt" data-es="${escapeHtml(o.es)}" onclick="answerLearnQuiz(this,this.dataset.es)">
-        <span class="opt-emoji">${getWordVisualHtml(o, 28)}</span>
         <span>${o.zh}</span>
         <small style="color:var(--text3);font-weight:400">${o.en}</small>
       </button>`
@@ -1987,7 +2304,7 @@ function showReviewCard() {
   const w = reviewQueue[reviewIdx];
   const ws = state.words[w.es] || {ef:2.5,interval:1,reps:1};
   currentWord = w;
-  document.getElementById('reviewVisual').innerHTML = getWordVisualHtml(w, 48);
+  renderWordVisual('reviewVisual', w);
   document.getElementById('reviewWord').textContent = w.es;
   document.getElementById('reviewPhonetic').textContent = '';
   document.getElementById('reviewCatTag').textContent = w.cat;
@@ -2192,7 +2509,7 @@ function showSpeakWord() {
   }
   const w = speakWords[speakIdx];
   currentWord = w;
-  document.getElementById('speakVisual').textContent = getWordVisual(w);
+  renderWordVisual('speakVisual', w);
   document.getElementById('speakTargetWord').textContent = w.es;
   document.getElementById('speakTargetPhonetic').textContent = w.zh + ' / ' + w.en;
   document.getElementById('speechResult').textContent = '';
@@ -2208,6 +2525,14 @@ function toggleMic() {
 }
 
 function updateMicButton(mode, active, hint) {
+  if (mode === 'replyResult') {
+    const button = document.getElementById('replyMicBtn');
+    button.setAttribute('aria-pressed', active);
+    button.textContent = active ? '结束回答' : '说出我的回答';
+    document.getElementById('replyMicHint').textContent =
+      hint === '点击开始跟读' ? '' : hint;
+    return;
+  }
   const sentence = mode === 'sentenceResult';
   const button = document.getElementById(sentence ? 'sentenceMicBtn' : 'micBtn');
   const label = document.getElementById(sentence ? 'sentenceMicHint' : 'micHint');
@@ -2237,6 +2562,7 @@ function startRecording(mode) {
     if (!result) return;
     receivedResult = true;
     if (mode === 'speakResult') handleSpeakResult(result);
+    else if (mode === 'replyResult') handleReplyResult(result);
     else handleSentenceResult(result);
   };
   session.onerror = event => {
@@ -2321,7 +2647,10 @@ let filteredSentences = SENTENCES;
 let sentencesStarted = false;
 
 function openSentences() {
-  if (!sentencesStarted) initSentences();
+  if (!sentencesStarted) {
+    initSentences();
+    initReplies();
+  }
 }
 
 function initSentences() {
@@ -2329,10 +2658,10 @@ function initSentences() {
   document.getElementById('sentenceMicBtn').hidden = !supportsRecognition();
   document.getElementById('sentenceMicHint').textContent = supportsRecognition()
     ? '点击开始跟读' : '当前浏览器可听示范并自主跟读。';
-  const cats = ['全部', ...new Set(SENTENCES.map(s => s.cat))];
-  document.getElementById('sentenceCatTabs').innerHTML = cats.map(c =>
-    `<button class="grammar-tab ${c===sentenceCat?'active':''}" aria-pressed="${c===sentenceCat}" onclick="setSentenceCat('${c}')">${c}</button>`
-  ).join('');
+  const categories = ['全部', ...new Set(SENTENCES.map(s => s.cat))];
+  const select = document.getElementById('sentenceCategory');
+  if (!select.options.length) select.replaceChildren(...categories.map(cat => new Option(cat, cat)));
+  select.value = sentenceCat;
   filteredSentences = sentenceCat === '全部' ? SENTENCES : SENTENCES.filter(s => s.cat === sentenceCat);
   sentenceIdx = 0;
   showSentence();
@@ -2364,9 +2693,9 @@ function toggleSentenceTranslation(show) {
   document.getElementById('sentenceZH').style.visibility = visible ? 'visible' : 'hidden';
 }
 
-function nextSentence() {
+function moveSentence(step) {
   leavePracticeSection();
-  sentenceIdx++;
+  sentenceIdx = (sentenceIdx + step + filteredSentences.length) % filteredSentences.length;
   showSentence();
 }
 
@@ -2922,6 +3251,6 @@ function spawnConfetti() {
 // INIT
 window.addEventListener('DOMContentLoaded', init);
 </script>
-<script src="shell.js?v=2"></script>
+<script src="shell.js?v=4"></script>
 </body>
 </html>
